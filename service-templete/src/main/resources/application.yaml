@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: service-templete
+  datasource:
+    url: jdbc:mysql://192.168.1.186:3306/maui_noithat?zeroDateTimeBehavior=convertToNull
+    username: root
+    password: "@abc123456"
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true

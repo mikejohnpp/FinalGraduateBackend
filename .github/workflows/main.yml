@@ -1,0 +1,23 @@
+name: Main Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  detect:
+    uses: ./.github/workflows/detect-changes.yml
+
+  build:
+    needs: detect
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.detect.outputs.modules) }}
+
+    uses: ./.github/workflows/build-module.yml
+    with:
+      module: ${{ matrix.module }}

@@ -1,0 +1,48 @@
+name: Detect Changes
+
+on:
+  workflow_call:
+    outputs:
+      modules:
+        description: "Changed modules"
+        value: ${{ jobs.detect.outputs.modules }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.set.outputs.modules }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: set
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+
+          changed=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD)
+          
+          MODULES=$(sed 's/[[:space:]]*$//' modules.txt | grep -v '^$' | paste -sd '|')
+          MODULES_LIST=$(sed 's/[[:space:]]*$//' modules.txt | grep -v '^$' | tr '\n' ' ')
+          
+          # Detect changed modules
+          modules=$(echo "$changed" \
+                | cut -d/ -f1 \
+                | sort -u \
+                | grep -E "^($MODULES)$" \
+                | tr '\n' ' ')
+        
+          echo "MODULES=$MODULES"
+          echo "MODULES_LIST=$MODULES_LIST"
+          echo "modules(before common check)=$modules"
+          
+          if echo "$changed" | grep -q "^common/"; then
+          modules="$MODULES_LIST"
+          fi
+          
+          modules_json=$(echo "$modules" | jq -R -c 'split(" ") | map(select(length > 0))')
+          
+          echo "modules=$modules_json"
+          echo "modules=$modules_json" >> $GITHUB_OUTPUT
