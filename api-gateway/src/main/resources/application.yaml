@@ -1,0 +1,36 @@
+server:
+  servlet:
+    context-path: /
+  port: 8081
+
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+#        - id: user_route
+#          uri: http://localhost:9091/
+#          predicates:
+#            - Path=/users/**
+#          filters:
+#            - StripPrefix=1
+#        - id: product_route
+#          uri: http://localhost:9090/
+#          predicates:
+#            - Path=/product/**
+#          filters:
+#            - StripPrefix=1
+#        - id: order_route
+#          uri: http://localhost:9092/
+#          predicates:
+#            - Path=/orders/**
+#          filters:
+#            - StripPrefix=1
+#        - id: stockIO_route
+#          uri: http://localhost:9093/
+#          predicates:
+#            - Path=/stockIO/**
+#          filters:
+#            - StripPrefix=1

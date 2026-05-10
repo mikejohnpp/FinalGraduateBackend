@@ -54,6 +54,7 @@
 
     <modules>
         <module>service-templete</module>
+        <module>api-gateway</module>
         <module>common</module>
     </modules>
 
