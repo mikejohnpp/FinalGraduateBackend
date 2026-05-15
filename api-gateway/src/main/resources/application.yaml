@@ -3,34 +3,60 @@ server:
     context-path: /
   port: 8081
 
-
 spring:
+  profiles:
+    active: dev
   application:
     name: api-gateway
+  datasource:
+    url: jdbc:mysql://100.106.249.45:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+  #    url: jdbc:mysql://localhost:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+    username: root
+    password: ""
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ltphat240103@gmail.com
+    password: hjiv mfbn ddsw ksbt
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls.enable: true
   cloud:
     gateway:
-      routes:
-#        - id: user_route
-#          uri: http://localhost:9091/
-#          predicates:
-#            - Path=/users/**
-#          filters:
-#            - StripPrefix=1
-#        - id: product_route
-#          uri: http://localhost:9090/
-#          predicates:
-#            - Path=/product/**
-#          filters:
-#            - StripPrefix=1
-#        - id: order_route
-#          uri: http://localhost:9092/
-#          predicates:
-#            - Path=/orders/**
-#          filters:
-#            - StripPrefix=1
-#        - id: stockIO_route
-#          uri: http://localhost:9093/
-#          predicates:
-#            - Path=/stockIO/**
-#          filters:
-#            - StripPrefix=1
+      server:
+        webmvc:
+          routes:
+            - id: service-templete
+              uri: http://localhost:9091/
+              predicates:
+                - Path=/users/**
+              filters:
+                - StripPrefix=1
+    #        - id: product_route
+    #          uri: http://localhost:9090/
+    #          predicates:
+    #            - Path=/product/**
+    #          filters:
+    #            - StripPrefix=1
+    #        - id: order_route
+    #          uri: http://localhost:9092/
+    #          predicates:
+    #            - Path=/orders/**
+    #          filters:
+    #            - StripPrefix=1
+    #        - id: stockIO_route
+    #          uri: http://localhost:9093/
+    #          predicates:
+    #            - Path=/stockIO/**
+    #          filters:
+    #            - StripPrefix=1
+

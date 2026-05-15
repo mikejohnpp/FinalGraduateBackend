@@ -2,19 +2,14 @@ package org.social.servicetemplete;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-@SpringBootApplication(exclude = {
-        DataSourceAutoConfiguration.class,
-        DataSourceTransactionManagerAutoConfiguration.class,
-        HibernateJpaAutoConfiguration.class
-})
+@SpringBootApplication(exclude = {})
+@EntityScan(basePackages = { "org.social.entities"})
+@EnableJpaRepositories(basePackages = {"org.social.repositories"})
 public class ServiceTempleteApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(ServiceTempleteApplication.class, args);
     }
-
 }

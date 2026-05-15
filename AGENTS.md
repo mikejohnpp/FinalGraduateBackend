@@ -1,66 +1,105 @@
-# AGENTS.md
+# OpenCode notes for this repo
 
-## Modules
+## Structure
+- Maven multi-module root `pom.xml` (`groupId: org.social`, `artifactId: social`) with 3 modules: `api-gateway`, `service-templete`, `common`.
+- **Spring Boot 4.0.6** parent; **Java 21**; MySQL connector `9.0.0`.
+- Entrypoints:
+  - `api-gateway/src/main/java/org/social/apigateway/ApiGatewayApplication.java`
+  - `service-templete/src/main/java/org/social/servicetemplete/ServiceTempleteApplication.java`
 
-- `maui-backend` - Main Spring Boot application
-- `common` - Shared entities in `org.social.entity` package
-- `service-templete` - Template/demo module
+## Module roles
 
-## Build & Run
+### `common` (jar)
+Shared library imported by both services (`org.social:common:1.0-SNAPSHOT`). Contains:
+- **Entities**: `User`, `Role`, `RoleDetail`, `Post`, `PostDetail`, `Comment`, `Message`, `Conversation`, `ConversationUser`, `ConversationUserId`, `Group`, `UserGroup`, `UserGroupId`, `UserFriend`, `UserFriendId`
+- **DTOs**: `LoginRequest`, `RegisterRequest`, `ApiResponse`, `JwtAuthResponse`
+- **Repositories**: `UserRepository`, `RoleRepository`, `CommentRepository`
+- **Config**: `WebConfig`, `ResponseApi`
+- **Exception handling**: `BusinessException`, `GlobalExceptionHandler` (under both `exceptions/` and `handler/`)
+- **Key deps**: `spring-boot-starter-data-jpa`, `spring-boot-starter-data-rest`, `spring-boot-starter-validation`, Lombok
 
-- **Build**: `cd maui-backend && mvn clean install` (or use `./mvnw`)
-- **Run**: `mvn spring-boot:run` from `maui-backend/`
-- **Single test**: `mvn test -Dtest=ClassName`
-- **Native build**: `mvn package -Pnative` (requires GraalVM)
+### `api-gateway`
+Authentication & gateway service. Runs on port **8081**. Key deps:
+- `spring-cloud-starter-gateway-server-webmvc` (Spring Cloud `2025.1.1`)
+- `spring-boot-starter-security`, `spring-boot-starter-mail`, `spring-boot-starter-validation`
+- **JWT**: `io.jsonwebtoken` (jjwt) version **0.13.0** (`jjwt-api`, `jjwt-impl`, `jjwt-jackson`)
+- `jackson-databind`, MySQL, Lombok, `common` module
 
-## Tech Stack
+Key source files:
+- `security/SecurityConfig.java` — Spring Security filter chain; stateless JWT, CORS for `http://localhost:5173`
+- `security/Endpoints.java` — public/private endpoint lists
+- `filters/JwtAuthFilter.java` — `OncePerRequestFilter`; extracts Bearer token, validates, sets `SecurityContext`
+- `controllers/AuthController.java` — REST controller at `/api/auth`
+- `services/impl/JWTServiceImpl.java` — reads `jwt.secret` and `jwt.expiration` from properties; signs with HS256
 
-- Spring Boot 3.5.13, Java 21
-- Maven (NOT Gradle)
-- Spring Data JPA + MySQL
-- JWT authentication via jjwt 0.11.5
-- Spring Security
+Auth REST endpoints (`/api/auth`):
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/dang-ky` | Public | Register; sends activation email |
+| POST | `/dang-nhap` | Public | Login; returns access token + sets `refreshToken` HttpOnly cookie (7 days) |
+| GET | `/kich-hoat?ma=` | Public | Activate account by token |
+| POST | `/refresh-token` | Public | Rotate access + refresh tokens using cookie |
+| POST | `/dang-xuat` | Private | Logout; clears `refreshToken` cookie |
 
-## Important Config (application.properties)
+### `service-templete`
+Blank service skeleton — no controllers yet. No fixed port (defaults to 8080). Key deps:
+- `spring-boot-starter-data-jpa`, `spring-boot-starter-web`, MySQL, Lombok, `common` module
+- Build plugins: `graalvm native-maven-plugin`, `spring-boot-maven-plugin`, `maven-compiler-plugin`
 
-- DB: MySQL at configured IP:3306/maui_noithat (user: root)
-- JWT secret: hardcoded (production should use env var)
-- CORS: `allowed-origins=*` (allows all origins)
-- Email: Gmail SMTP (smtp.gmail.com:587)
-- H2 not configured - requires MySQL connection
+## Build and test
+- Maven wrapper at repo root: `./mvnw` (Maven 3.9.14 image in Docker, Java 21).
+- Build a single module with deps: `./mvnw -pl <module> -am package -DskipTests`
+- Build all: `./mvnw package -DskipTests`
+- Common library must be installed before other modules when building manually: `./mvnw -pl common install`
 
-## Architecture
+## CI / Docker
 
-- Modules: `maui-backend` (app), `common` (entities in `org.social.entity`)
-- Entry: `DemoApplication.java`
-- Requires `@EntityScan(basePackages = {"com.example.demo", "org.social.entity"})` and `@EnableJpaRepositories` for cross-module entities
-- Controllers in `com.example.demo.controller`
-- Entities in `org.social.entity` (from common module)
-- Services in `com.example.demo.service`
+### GitHub Actions (`.github/workflows/`)
+| File | Trigger | Purpose |
+|------|---------|---------|
+| `main.yml` | PR → `main` | Orchestrator: runs detect, then matrix-builds changed modules |
+| `detect-changes.yml` | `workflow_call` | Compares changed files vs `modules.txt`; if `common/` changed → rebuilds **all** modules |
+| `build-module.yml` | `workflow_call` | Docker build + push to GHCR (`ghcr.io/<owner>/<module>:<sha>`) |
 
-## Gotchas
+### Docker build
+- **`build.dockerfile`** (used by CI) — multi-stage: Maven 3.9.14 / JDK 21 builder → JRE 21 runtime.
+  ```sh
+  docker build --build-arg MODULE=api-gateway -f build.dockerfile -t myimage .
+  ```
+  Builds `common` first, then `MODULE`; exposes port `8080` inside container.
+- **`build-prod.dockerfile`** — references `maui-backend/` (module not in repo). **Do not use** without adding that module.
 
-- `ddl-auto=none` - schema must exist; import `maui_noithat.sql` to create
-- Uses custom `JwtFilter` for security
-- No separate lint/typecheck (Maven only)
-- Entities in `org.social.entity` require `@EntityScan` in DemoApplication
-- Parent POM must be installed (`mvn -N install`) before building modules
-- Use `maven:3.9-*` for Java 21 (3.8.x only supports Java 18)
+### `modules.txt`
+Lists trackable modules for CI change detection (one per line):
+```
+service-templete
+api-gateway
+```
+Add new microservices here so CI detects their changes.
 
-## Docker
+## Runtime config
 
-Dockerfiles nằm trong thư mục riêng theo module:
+### `api-gateway/src/main/resources/application.yaml`
+- Port: **8081**, context-path: `/`
+- DB: `jdbc:mysql://100.106.249.45:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull` (remote host; switch to `localhost` for local dev)
+- `jpa.hibernate.ddl-auto: none`; `physical-strategy: PhysicalNamingStrategyStandardImpl`; `show-sql: true`
+- Spring Cloud Gateway routes are all commented out (not active)
 
-- **maui-backend**: `docker/maui-backend/maui-backend.dockerfile`
-- **service-templete**: `docker/service-templete/service-templete.dockerfile`
-- **native**: `docker/maui-backend-graal.dockerfile`
+### `api-gateway/src/main/resources/application-dev.properties`
+JWT secrets — **non-production only**:
+```properties
+jwt.secret=<base64-encoded-secret>
+jwt.expiration=86400000   # 1 day in ms; refresh token = 7x this value
+```
 
-Dockerfiles dùng multi-stage Alpine build:
-- Builder: `maven:3.9-eclipse-temurin-21-alpine`
-- Runtime: `eclipse-temurin:21-jre-alpine` (~80-120MB)
+### `service-templete/src/main/resources/application.yaml`
+- No explicit port (defaults to 8080)
+- Same DB URL as `api-gateway`; Flyway and Hibernate dialect are commented out
 
-## CI
+## Key conventions
+- Response wrapper: `org.social.dto.ApiResponse<T>` with static helpers `ApiResponse.ok(...)` and `ApiResponse.error(status, msg)`
+- Refresh token is stored as an **HttpOnly cookie** (`refreshToken`), not in response body
+- CORS allows only `http://localhost:5173` (Vite dev server) — update `Endpoints.front_end_host` for production
+- `service-templete` is a **template** for new microservices; copy and rename when adding a new service
+- When adding a new module, register it in root `pom.xml` `<modules>` **and** `modules.txt`
 
-- Dùng reusable workflows: `detect-changes.yml` → `build-module.yml`
-- Build từng module độc lập khi có thay đổi
-- Push image lên ghcr.io với tag `latest` và commit SHA
