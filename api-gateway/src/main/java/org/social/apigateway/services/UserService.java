@@ -1,7 +1,7 @@
 package org.social.apigateway.services;
 
-import org.social.dto.RegisterRequest;
-import org.social.entities.User;
+import org.social.common.dto.RegisterRequest;
+import org.social.common.entities.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.util.Optional;

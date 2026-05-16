@@ -7,8 +7,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.social.apigateway.services.JWTService;
 import org.social.apigateway.services.UserService;
-import org.social.entities.Role;
-import org.social.entities.User;
+import org.social.common.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.List;
 import java.util.function.Function;
 
 @Service
