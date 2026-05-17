@@ -42,7 +42,7 @@ jobs:
         run: |
             # Configure git credential store
             git config --global credential.helper store
-            echo "https://${GIT_TOKEN}:x-oauth-basic@github.com" > ~/.git-credentials
+            echo "https://${{ secrets.GITOPS_PAT }}:x-oauth-basic@github.com" > ~/.git-credentials
             
             # Remove any existing gitops directory
             rm -rf gitops
@@ -60,4 +60,4 @@ jobs:
             git commit -m "Update image to ${{ github.sha }}"
             
             # Push
-            git push -f https://${GIT_TOKEN}@github.com/mikejohnpp/FinalGraduateProjectConfig.git main
+            git push -f https://${{ secrets.GITOPS_PAT }}@github.com/mikejohnpp/FinalGraduateProjectConfig.git main
