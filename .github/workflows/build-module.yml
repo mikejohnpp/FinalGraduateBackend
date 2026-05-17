@@ -34,3 +34,34 @@ jobs:
         run: |
           IMAGE=ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:${{ github.sha }}
           docker push $IMAGE
+
+      - name: Update GitOps repository
+        shell: bash
+        env:
+          GIT_TOKEN: ${{ secrets.GITOPS_PAT }}
+        run: |
+            # Configure git credential store
+            git config --global credential.helper store
+            echo "https://${GIT_TOKEN}:x-oauth-basic@github.com" > ~/.git-credentials
+            
+            # Remove any existing gitops directory
+            rm -rf gitops
+            
+            # Clone repository using HTTPS URL without token
+            git clone https://github.com/mikejohnpp/FinalGraduateProjectConfig.git gitops
+            cd gitops/${{ inputs.module }}-app     
+            
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+              sed -i '' "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${{ github.sha }}|g" deployment.yaml
+            else
+              sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${{ github.sha }}|g" deployment.yaml
+            fi
+            
+            # Commit changes
+            git config --global user.name "GitHub Actions"
+            git config --global user.email "actions@github.com"
+            git add deployment.yaml
+            git commit -m "Update image to ${{ github.sha }}"
+            
+            # Push
+            git push -f https://${GIT_TOKEN}@github.com/mikejohnpp/FinalGraduateProjectConfig.git main
