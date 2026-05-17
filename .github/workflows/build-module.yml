@@ -51,13 +51,9 @@ jobs:
             git clone https://github.com/mikejohnpp/FinalGraduateProjectConfig.git gitops
             cd gitops/${{ inputs.module }}-app     
             
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-              #sed -i '' "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${{ github.sha }}|g" deployment.yaml
-              sed -i '' "s|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:.*|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:${{ github.sha }}|g" deployment.yaml
-            else
-              sed -i "s|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:.*|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:${{ github.sha }}|g" deployment.yaml
-            fi
-            
+           
+            sed -i "s|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:.*|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:${{ github.sha }}|g" deployment.yaml
+       
             cd ..
             
             # Commit changes
