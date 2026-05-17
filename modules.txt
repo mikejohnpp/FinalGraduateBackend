@@ -1,2 +1,2 @@
-service-templete
+user-service
 api-gateway
