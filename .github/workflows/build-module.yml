@@ -49,12 +49,9 @@ jobs:
             
             # Clone repository using HTTPS URL without token
             git clone https://github.com/mikejohnpp/FinalGraduateProjectConfig.git gitops
-            cd gitops/${{ inputs.module }}-app     
+            cd gitops     
             
-           
-            sed -i "s|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:.*|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:${{ github.sha }}|g" deployment.yaml
-       
-            cd ..
+            sed -i "s|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:.*|image: ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:${{ github.sha }}|g" ${{ inputs.module }}-app/deployment.yaml
             
             # Commit changes
             git config --global user.name "GitHub Actions"
