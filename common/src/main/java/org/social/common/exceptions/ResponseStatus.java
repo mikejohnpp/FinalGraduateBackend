@@ -1,4 +1,4 @@
-package org.social.common.handler;
+package org.social.common.exceptions;
 
 public enum ResponseStatus {
     SUCCESS(200, "Success"),

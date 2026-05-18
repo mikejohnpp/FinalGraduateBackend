@@ -13,10 +13,18 @@
 ### `common` (jar)
 Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Contains:
 - **Entities**: `User`, `Role`, `RoleDetail`, `Post`, `PostDetail`, `Comment`, `Message`, `Conversation`, `ConversationUser`, `ConversationUserId`, `Group`, `UserGroup`, `UserGroupId`, `UserFriend`, `UserFriendId`
-- **DTOs**: `LoginRequest`, `RegisterRequest`, `ApiResponse`, `JwtAuthResponse`
+- **DTOs (root)**: `LoginRequest`, `RegisterRequest`, `ApiResponse`, `JwtAuthResponse`
+- **DTOs (user sub-package)** — `dto/user/views/` and `dto/user/mappers/`:
+  - `UserDTO` — record(`name`, `RoleDTO role`); used for general responses
+  - `UserNoAuthenticateDTO` — record(`name`, `role`); public-facing, no sensitive fields
+  - `UserWithAuthenticateDTO` — record(`name`, `role`, `isActive`); includes activation status
+  - `RoleDTO` — record(`name`); flat, no back-reference to users
+  - `UserMapper` — static utility class; methods: `mapUserToUserDTO`, `mapUserToUserNoAuthenticate`, `mapUserToUserWithAuthenticate`
 - **Repositories**: `UserRepository`, `RoleRepository`, `CommentRepository`
 - **Config**: `WebConfig`, `ResponseApi`
-- **Exception handling**: `BusinessException`, `GlobalExceptionHandler` (under both `exceptions/` and `handler/`), `ResponseStatus` enum (under `handler/`)
+- **Exception handling**:
+  - `exceptions/BusinessException.java`, `exceptions/GlobalExceptionHandler.java`, `exceptions/ResponseStatus.java`
+  - `handler/GlobalExceptionHandler.java`, `handler/ResponseStatus.java` (duplicate — kept for backward compat)
 - **Key deps**: `spring-boot-starter-data-jpa`, `spring-boot-starter-data-rest`, `spring-boot-starter-validation`, Lombok
 
 ### `api-gateway`
@@ -144,3 +152,12 @@ All services use **Spring profile-based configuration**. The base `application.y
 - `service-templete` is a **template** for new microservices; copy and rename when adding a new service
 - When adding a new module, register it in root `pom.xml` `<modules>` **and** `modules.txt`
 - Downstream services consume entities/repositories from `common` — must annotate the main class with `@EntityScan` and `@EnableJpaRepositories` pointing to `org.social.common.*` packages
+
+## JSON circular reference
+Entities have bidirectional JPA relationships (e.g. `User ↔ Role`) that cause `StackOverflowError` if serialized directly. **Preferred solution: always use DTOs instead of returning raw entities from controllers.** Use `UserMapper` (or similar static mappers in `dto/<entity>/mappers/`) to convert entities to flat DTO records before returning responses. DTO records in `dto/user/views/` are designed to be non-circular by construction (e.g. `RoleDTO` has no `users` field). Do **not** use `@JsonIgnore` or `@JsonManagedReference/@JsonBackReference` on entities as the primary fix — those are last-resort patches.
+
+## DTO conventions
+- DTOs are written as **Java Records** (Java 21) for brevity and immutability.
+- DTOs for a domain object are grouped under `dto/<entity>/views/` (response shapes) and `dto/<entity>/mappers/` (static conversion methods).
+- Mapper classes use static methods only — no Spring beans, no dependency injection.
+- Naming: `<Entity>DTO` (full), `<Entity>NoAuthenticateDTO` (public/anonymous view), `<Entity>WithAuthenticateDTO` (authenticated view with status fields).

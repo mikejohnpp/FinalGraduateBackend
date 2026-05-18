@@ -1,7 +1,7 @@
 package org.social.common.config;
 
 
-import org.social.common.handler.ResponseStatus;
+import org.social.common.exceptions.ResponseStatus;
 
 import java.time.LocalDateTime;
 

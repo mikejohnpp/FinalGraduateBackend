@@ -1,70 +1,93 @@
 package org.social.common.exceptions;
 
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
+import org.social.common.config.ResponseApi;
 import org.social.common.dto.ApiResponse;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-/**
- * Bắt tất cả exception từ mọi controller trong ứng dụng.
- * Không cần try-catch trong controller nữa.
- */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    /**
-     * Bắt lỗi validation từ @Valid / @Validated trên @RequestBody.
-     *
-     * Ví dụ JSON trả về khi nhập sai:
-     * {
-     *   "success": false,
-     *   "message": "Dữ liệu không hợp lệ",
-     *   "data": ["Email không được để trống", "Mật khẩu phải có ít nhất 6 ký tự"]
-     * }
-     */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<List<String>>> handleValidationException(
-            MethodArgumentNotValidException ex) {
-
-        List<String> errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(err -> err.getField() + ": " + err.getDefaultMessage())
-                .toList();
-
-        return ApiResponse.error(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ", errors);
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ResponseApi<Void>> handleNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ResponseApi<>(ResponseStatus.NOT_FOUND, null));
+    }
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ResponseApi<Void>> handleBadRequest(BadRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ResponseApi<>(ResponseStatus.BAD_REQUEST  ,  null));
     }
 
-    /**
-     * Bắt lỗi nghiệp vụ từ BusinessException (email trùng, mật khẩu không khớp, v.v.)
-     *
-     * Ví dụ JSON trả về:
-     * {
-     *   "success": false,
-     *   "message": "Email đã được sử dụng!"
-     * }
-     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ResponseApi<Void>> handleException(Exception ex) {
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ResponseApi<>(ResponseStatus.INTERNAL_SERVER_ERROR, null));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseBody
+    public ResponseEntity<ResponseApi<Map<String, String>>> handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getConstraintViolations().forEach(cv ->
+                errors.put(
+                        cv.getPropertyPath().toString(),
+                        cv.getMessage()
+                )
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ResponseApi<>(ResponseStatus.METHOD_ARGUMENT_ERROR, errors));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseBody
+    public ResponseEntity<ResponseApi<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                errors.put(error.getField(), error.getDefaultMessage())
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ResponseApi<>(ResponseStatus.METHOD_ARGUMENT_ERROR, errors));
+    }
+
+
+//    @ExceptionHandler(MethodArgumentNotValidException.class)
+//    public ResponseEntity<ResponseApi<List<String>>> handleValidationException(
+//            MethodArgumentNotValidException ex) {
+//
+//        List<String> errors = ex.getBindingResult()
+//                .getFieldErrors()
+//                .stream()
+//                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+//                .toList();
+//
+//        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//                .body(new ResponseApi<>(ResponseStatus.NOT_FOUND, errors));
+//
+////        return ApiResponse.error(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ", errors);
+//    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
         return ApiResponse.error(ex.getStatus(), ex.getMessage());
     }
 
-    /**
-     * Bắt tất cả lỗi không mong muốn còn lại (fallback).
-     *
-     * Ví dụ JSON trả về:
-     * {
-     *   "success": false,
-     *   "message": "Lỗi hệ thống, vui lòng thử lại sau."
-     * }
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGeneralException(Exception ex) {
-        ex.printStackTrace(); // In log để debug
-        return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau.");
-    }
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<ApiResponse<Void>> handleGeneralException(Exception ex) {
+//        ex.printStackTrace(); // In log để debug
+//        return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau.");
+//    }
 }
