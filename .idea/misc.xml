@@ -8,6 +8,7 @@
         <option value="$PROJECT_DIR$/maui-backend/pom.xml" />
         <option value="$PROJECT_DIR$/service-templete/pom.xml" />
         <option value="$PROJECT_DIR$/api-gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/user-service/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">
