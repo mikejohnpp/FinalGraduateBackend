@@ -5,5 +5,5 @@ import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
 public record PostUpdateRequest(
-        @NotEmpty List<@NotEmpty String> contents
+        @NotEmpty(message = "Nội dung bài viết không được để trống") List<@NotEmpty(message = "Nội dung không được để trống") String> contents
 ) {}

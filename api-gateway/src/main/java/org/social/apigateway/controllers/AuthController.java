@@ -9,6 +9,8 @@ import org.social.common.dto.ApiResponse;
 import org.social.common.dto.JwtAuthResponse;
 import org.social.common.dto.LoginRequest;
 import org.social.common.dto.RegisterRequest;
+import org.social.common.entities.User;
+import org.social.common.exceptions.BusinessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -55,6 +57,9 @@ public class AuthController {
             String token = jwtService.generateToken(request.getEmail());
             String refreshToken = jwtService.createRefreshToken(request.getEmail());
 
+            User user = userService.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
+
             Cookie cookie = new Cookie("refreshToken", refreshToken);
             cookie.setHttpOnly(true);
             cookie.setPath("/");
@@ -62,7 +67,7 @@ public class AuthController {
             // cookie.setSecure(true); // Bỏ comment nếu chạy HTTPS
             response.addCookie(cookie);
 
-            return ApiResponse.ok("Đăng nhập thành công!", new JwtAuthResponse(token));
+            return ApiResponse.ok("Đăng nhập thành công!", new JwtAuthResponse(token, user.getId()));
         } else {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không đúng.");
         }
@@ -102,6 +107,9 @@ public class AuthController {
                 String newToken = jwtService.generateToken(email);
                 String newRefreshToken = jwtService.createRefreshToken(email);
 
+                User user = userService.findByEmail(email)
+                        .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
+
                 Cookie cookie = new Cookie("refreshToken", newRefreshToken);
                 cookie.setHttpOnly(true);
                 cookie.setPath("/");
@@ -109,7 +117,7 @@ public class AuthController {
                 // cookie.setSecure(true); // Bỏ comment nếu chạy HTTPS
                 response.addCookie(cookie);
 
-                return ApiResponse.ok("Làm mới token thành công!", new JwtAuthResponse(newToken));
+                return ApiResponse.ok("Làm mới token thành công!", new JwtAuthResponse(newToken, user.getId()));
             } else {
                 return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Refresh token không hợp lệ hoặc đã hết hạn.");
             }

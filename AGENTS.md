@@ -20,11 +20,13 @@ Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Cont
   - `UserWithAuthenticateDTO` — record(`name`, `role`, `isActive`); includes activation status
   - `RoleDTO` — record(`name`); flat, no back-reference to users
   - `UserMapper` — static utility class; methods: `mapUserToUserDTO`, `mapUserToUserNoAuthenticate`, `mapUserToUserWithAuthenticate`
-- **Repositories**: `UserRepository`, `RoleRepository`, `CommentRepository`
-- **Config**: `WebConfig`, `ResponseApi`
+- **Repositories**: `UserRepository`, `RoleRepository`, `CommentRepository`, `PostRepository`, `PostDetailRepository`
+- **Config**: `WebConfig`, `ResponseApi` (legacy — do not use in new code)
 - **Exception handling**:
-  - `exceptions/BusinessException.java`, `exceptions/GlobalExceptionHandler.java`, `exceptions/ResponseStatus.java`
-  - `handler/GlobalExceptionHandler.java`, `handler/ResponseStatus.java` (duplicate — kept for backward compat)
+  - `exceptions/GlobalExceptionHandler.java` — `@RestControllerAdvice`; handles 10 exception types (see below)
+  - `exceptions/BusinessException.java` — custom runtime exception with `HttpStatus`
+  - `exceptions/ResponseStatus.java` — HTTP status enum
+  - `handler/GlobalExceptionHandler.java`, `handler/ResponseStatus.java` (legacy duplicates — kept for backward compat)
 - **Key deps**: `spring-boot-starter-data-jpa`, `spring-boot-starter-data-rest`, `spring-boot-starter-validation`, Lombok
 
 ### `api-gateway`
@@ -144,7 +146,8 @@ All services use **Spring profile-based configuration**. The base `application.y
 - Same DB URL as other modules; Flyway and Hibernate dialect are commented out
 
 ## Key conventions
-- Response wrapper: `org.social.common.dto.ApiResponse<T>` with static helpers `ApiResponse.ok(...)` and `ApiResponse.error(status, msg)`
+- **Response wrapper**: `org.social.common.dto.ApiResponse<T>` is the **only** response type. Use `ApiResponse.ok(msg)`, `ApiResponse.ok(msg, data)`, `ApiResponse.error(status, msg)`, `ApiResponse.error(status, msg, data)`. Do **not** use `ResponseApi` in new code — it is legacy.
+- **No inline comments in code**: Do not add Javadoc or inline comments to production code. Use clear method/variable names instead. Documentation lives in AGENTS.md and plan files.
 - Refresh token is stored as an **HttpOnly cookie** (`refreshToken`), not in response body
 - JWT access token claims: `sub` (email), `roles` (single role name string), `type` (`"access"`)
 - JWT refresh token claims: same structure but `type` = `"refresh"`, expiration = `7 × jwtExpirationMs`
@@ -153,11 +156,38 @@ All services use **Spring profile-based configuration**. The base `application.y
 - When adding a new module, register it in root `pom.xml` `<modules>` **and** `modules.txt`
 - Downstream services consume entities/repositories from `common` — must annotate the main class with `@EntityScan` and `@EnableJpaRepositories` pointing to `org.social.common.*` packages
 
+## Exception handling conventions
+- All services rely on `exceptions/GlobalExceptionHandler` from `common` (picked up via `@ComponentScan("org.social.common.exceptions")`).
+- `GlobalExceptionHandler` covers (in order, specific → general):
+  1. `MethodArgumentNotValidException` — `@RequestBody` validation fails → 400 + field error map
+  2. `ConstraintViolationException` — `@PathVariable`/`@RequestParam` validation fails → 400 + field error map
+  3. `HttpMessageNotReadableException` — malformed JSON body → 400
+  4. `MethodArgumentTypeMismatchException` — wrong path variable type (e.g. `/posts/abc`) → 400
+  5. `MissingServletRequestParameterException` — required `@RequestParam` absent → 400
+  6. `HttpMediaTypeNotSupportedException` — wrong Content-Type → 415
+  7. `HttpRequestMethodNotSupportedException` — wrong HTTP method → 405
+  8. `NoResourceFoundException` — URL not found (Spring Boot 3.2+) → 404
+  9. `ResponseStatusException` — thrown from services via `throw new ResponseStatusException(...)` → dynamic status
+  10. `DataIntegrityViolationException` — DB unique/FK constraint violated → 409
+  11. `BusinessException` — custom domain exception → status from exception
+  12. `Exception` (catch-all) → 500
+- Throw `BusinessException(HttpStatus, message)` for domain errors from services.
+- Throw `ResponseStatusException(HttpStatus, reason)` for simple not-found / forbidden checks in services.
+- **`Exception.class` handler must always be last** — placing it before specific handlers will silently swallow them.
+
 ## JSON circular reference
 Entities have bidirectional JPA relationships (e.g. `User ↔ Role`) that cause `StackOverflowError` if serialized directly. **Preferred solution: always use DTOs instead of returning raw entities from controllers.** Use `UserMapper` (or similar static mappers in `dto/<entity>/mappers/`) to convert entities to flat DTO records before returning responses. DTO records in `dto/user/views/` are designed to be non-circular by construction (e.g. `RoleDTO` has no `users` field). Do **not** use `@JsonIgnore` or `@JsonManagedReference/@JsonBackReference` on entities as the primary fix — those are last-resort patches.
 
 ## DTO conventions
+- **Location**: ALL DTOs, Requests, Responses, and Mappers MUST be placed in the `common` module under `org.social.common.dto.*`. Do NOT create DTO-related classes inside individual microservices.
 - DTOs are written as **Java Records** (Java 21) for brevity and immutability.
 - DTOs for a domain object are grouped under `dto/<entity>/views/` (response shapes) and `dto/<entity>/mappers/` (static conversion methods).
 - Mapper classes use static methods only — no Spring beans, no dependency injection.
 - Naming: `<Entity>DTO` (full), `<Entity>NoAuthenticateDTO` (public/anonymous view), `<Entity>WithAuthenticateDTO` (authenticated view with status fields).
+
+## API Testing with Hurl
+We use [Hurl](https://hurl.dev/) for end-to-end API testing.
+- **Location**: All tests are located in `/tests/api/`.
+- **Environment Variables**: Tests must be environment-agnostic. Use `{{host}}` for base URLs, loaded from `/tests/api/vars/dev.env` or `prod.env`.
+- **Authentication**: For protected endpoints, capture the token from a login request at the top of the test file using the `[Captures]` block, and inject it into subsequent requests via the `Authorization: Bearer {{token}}` header.
+- **Execution**: Run tests using the helper script `tests/api/run-all.sh`.
