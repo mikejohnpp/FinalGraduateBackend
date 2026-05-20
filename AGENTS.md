@@ -1,12 +1,12 @@
 # OpenCode notes for this repo
 
 ## Structure
-- Maven multi-module root `pom.xml` (`groupId: org.social`, `artifactId: social`) with 4 modules: `api-gateway`, `user-service`, `service-templete`, `common`.
+- Maven multi-module root `pom.xml` (`groupId: org.social`, `artifactId: social`) with 4 modules: `api-gateway`, `chat-service`, `user-service`, `common`.
 - **Spring Boot 4.0.6** parent; **Java 21**; MySQL connector `9.0.0`.
 - Entrypoints:
   - `api-gateway/src/main/java/org/social/apigateway/ApiGatewayApplication.java`
   - `user-service/src/main/java/org/social/userservice/UserServiceApplication.java`
-  - `service-templete/src/main/java/org/social/servicetemplete/ServiceTempleteApplication.java`
+  - `chat-service/src/main/java/org/social/chatservice/ChatServiceApplication.java`
 
 ## Module roles
 
@@ -20,6 +20,8 @@ Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Cont
   - `UserWithAuthenticateDTO` — record(`name`, `role`, `isActive`); includes activation status
   - `RoleDTO` — record(`name`); flat, no back-reference to users
   - `UserMapper` — static utility class; methods: `mapUserToUserDTO`, `mapUserToUserNoAuthenticate`, `mapUserToUserWithAuthenticate`
+- **Events**: `events/PingEvent`, `events/PongEvent` (Kafka transport records, top-level package, **not** under `dto/`)
+- **Kafka kernel** (`kafka/`): `KafkaTopics`, `KafkaHeaders`, `support/EventEnvelope`, `support/EventPublisher`, `config/KafkaCommonProperties`, `config/KafkaErrorHandlingConfig`
 - **Repositories**: `UserRepository`, `RoleRepository`, `CommentRepository`, `PostRepository`, `PostDetailRepository`
 - **Config**: `WebConfig`, `ResponseApi` (legacy — do not use in new code)
 - **Exception handling**:
@@ -27,7 +29,7 @@ Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Cont
   - `exceptions/BusinessException.java` — custom runtime exception with `HttpStatus`
   - `exceptions/ResponseStatus.java` — HTTP status enum
   - `handler/GlobalExceptionHandler.java`, `handler/ResponseStatus.java` (legacy duplicates — kept for backward compat)
-- **Key deps**: `spring-boot-starter-data-jpa`, `spring-boot-starter-data-rest`, `spring-boot-starter-validation`, Lombok
+- **Key deps**: `spring-boot-starter-data-jpa`, `spring-boot-starter-data-rest`, `spring-boot-starter-validation`, `spring-kafka` (optional), Lombok
 
 ### `api-gateway`
 Authentication & gateway service. Runs on port **8080** (dev profile). Key deps:
@@ -59,6 +61,7 @@ Gateway routing (active in dev profile):
 | Route ID | Predicate | Target | Filters |
 |----------|-----------|--------|---------|
 | `user-service` | `Path=/users/**` | `http://localhost:9090/` | `StripPrefix=1` |
+| `chat-service` | `Path=/chat/**` | `http://localhost:9091/` | `StripPrefix=1` |
 
 ### `user-service`
 User-facing microservice. Runs on port **9090** (dev profile), **8080** (prod profile). Key deps:
@@ -71,12 +74,14 @@ Key source files:
 - `services/UserService.java` — interface with `getAll()` method
 - `services/impl/UserServiceImpl.java` — queries `UserRepository.findAll()`
 
-**Note:** `user-service` is registered in root `pom.xml` `<modules>` but **NOT yet in `modules.txt`** — CI will not detect its changes until added.
+### `chat-service`
+Chat/messaging microservice. Runs on port **9091** (dev profile), **8080** (prod profile). Key deps:
+- `spring-boot-starter-data-jpa`, `spring-boot-starter-webmvc`, MySQL, Lombok, `common` module
 
-### `service-templete`
-Service skeleton / template for new microservices. Runs on port **9091**. Key deps:
-- `spring-boot-starter-data-jpa`, `spring-boot-starter-web`, MySQL, Lombok, `common` module
-- Build plugins: `graalvm native-maven-plugin`, `spring-boot-maven-plugin`, `maven-compiler-plugin`
+Entrypoint: `ChatServiceApplication.java` — annotated with `@EntityScan("org.social.common.entities")`, `@EnableJpaRepositories("org.social.common.repositories")`, and `@ComponentScan` covering `org.social.chatservice` + `org.social.common.exceptions`.
+
+Key source files:
+- `TestController.java` — `@RequestMapping("/hello")`, `GET` → returns "Hello" (temporary/test endpoint)
 
 ## Build and test
 - Maven wrapper at repo root: `./mvnw` (Maven 3.9.14 image in Docker, Java 21).
@@ -99,28 +104,27 @@ Service skeleton / template for new microservices. Runs on port **9091**. Key de
   docker build --build-arg MODULE=api-gateway -f build.dockerfile -t myimage .
   ```
   Builds `common` first, then `MODULE`; exposes port `8080` inside container.
-- **`build-prod.dockerfile`** — references `maui-backend/` (module not in repo). **Do not use** without adding that module.
 
 ### `modules.txt`
 Lists trackable modules for CI change detection (one per line):
 ```
-service-templete
+user-service
 api-gateway
+chat-service
 ```
-⚠️ `user-service` is **missing** from this file — add it so CI detects its changes.
 
 ## Runtime config
 
-All services use **Spring profile-based configuration**. The base `application.yaml` only sets `spring.profiles.active: dev`. Environment-specific settings live in `application-dev.yaml` and `application-prod.yaml`.
+All services use **Spring profile-based configuration**. Config is in `application.yaml` (dev) and `application-prod.yaml` (prod).
 
 ### `api-gateway` config
 
-#### `application-dev.yaml`
+#### `application.yaml` (dev)
 - Port: **8080**, context-path: `/`
 - DB: `jdbc:mysql://100.106.249.45:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull` (remote host; switch to `localhost` for local dev)
 - `jpa.hibernate.ddl-auto: none`; `physical-strategy: PhysicalNamingStrategyStandardImpl`; `show-sql: true`
 - **Mail**: Gmail SMTP (`smtp.gmail.com:587`, TLS)
-- **Gateway routes**: proxies `Path=/users/**` → `http://localhost:9090/` (user-service)
+- **Gateway routes**: proxies `Path=/users/**` → `http://localhost:9090/` (user-service), `Path=/chat/**` → `http://localhost:9091/` (chat-service)
 - JWT config:
   ```yaml
   jwt:
@@ -141,9 +145,15 @@ All services use **Spring profile-based configuration**. The base `application.y
 - Port: **8080** (matches Docker container exposed port)
 - Same DB and JPA settings
 
-### `service-templete/src/main/resources/application.yaml`
+### `chat-service` config
+
+#### `application.yaml` (dev)
 - Port: **9091**
-- Same DB URL as other modules; Flyway and Hibernate dialect are commented out
+- Same DB URL as other modules; `jpa.hibernate.ddl-auto: none`; `show-sql: true`
+
+#### `application-prod.yaml`
+- Port: **8080** (matches Docker container exposed port)
+- Same DB and JPA settings
 
 ## Key conventions
 - **Response wrapper**: `org.social.common.dto.ApiResponse<T>` is the **only** response type. Use `ApiResponse.ok(msg)`, `ApiResponse.ok(msg, data)`, `ApiResponse.error(status, msg)`, `ApiResponse.error(status, msg, data)`. Do **not** use `ResponseApi` in new code — it is legacy.
@@ -152,7 +162,6 @@ All services use **Spring profile-based configuration**. The base `application.y
 - JWT access token claims: `sub` (email), `roles` (single role name string), `type` (`"access"`)
 - JWT refresh token claims: same structure but `type` = `"refresh"`, expiration = `7 × jwtExpirationMs`
 - CORS allows only `http://localhost:5173` (Vite dev server) — update `Endpoints.front_end_host` for production
-- `service-templete` is a **template** for new microservices; copy and rename when adding a new service
 - When adding a new module, register it in root `pom.xml` `<modules>` **and** `modules.txt`
 - Downstream services consume entities/repositories from `common` — must annotate the main class with `@EntityScan` and `@EnableJpaRepositories` pointing to `org.social.common.*` packages
 
@@ -191,3 +200,34 @@ We use [Hurl](https://hurl.dev/) for end-to-end API testing.
 - **Environment Variables**: Tests must be environment-agnostic. Use `{{host}}` for base URLs, loaded from `/tests/api/vars/dev.env` or `prod.env`.
 - **Authentication**: For protected endpoints, capture the token from a login request at the top of the test file using the `[Captures]` block, and inject it into subsequent requests via the `Authorization: Bearer {{token}}` header.
 - **Execution**: Run tests using the helper script `tests/api/run-all.sh`.
+
+## Kafka conventions
+
+- **Cluster**: Strimzi `final-graduate-cluster` running in K8s namespace `kafka`.
+  - External dev bootstrap (NodePort, Tailscale): `100.106.249.45:31835`
+  - In-cluster bootstrap: `final-graduate-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092`
+  - Override with env var `KAFKA_BOOTSTRAP`.
+- **Shared kernel** in `common` (`org.social.common.kafka.*`):
+  - `KafkaTopics` — topic name constants
+  - `KafkaHeaders` — custom Kafka header names (`X-Event-Id`, `X-Event-Type`, ...)
+  - `support/EventEnvelope` — record wrapping every payload (`eventId`, `eventType`, `traceId`, `occurredAt`, `source`, `version`, `payload`)
+  - `support/EventPublisher` — wrapper around `KafkaTemplate` that sets headers + logs send result; each service exposes a `@Bean EventPublisher` with its own `source` name
+  - `config/KafkaCommonProperties` — `@ConfigurationProperties("app.kafka")`
+  - `config/KafkaErrorHandlingConfig` — auto-config for `DefaultErrorHandler` + `DeadLetterPublishingRecoverer` (`<topic>.dlt`); retries 3× with 1s back-off; `BusinessException` and `ResponseStatusException` are non-retryable
+- **Event DTOs**: live in `common/events/` (top-level, NOT under `dto/`), written as Java records. They are transport contracts, separate from REST DTOs.
+- **Demo topics** (current scope): `demo.ping` (chat-service → user-service), `demo.pong` (user-service → chat-service). DLQ topic is `<topic>.dlt`.
+- **Keys**: use a meaningful entity id as record key so events of the same entity stay ordered within a partition.
+- **Producer config**: `acks=all`, idempotent, JSON serializer.
+- **Consumer config**: manual ack (`ack-mode: manual_immediate`), `ErrorHandlingDeserializer` + `JsonDeserializer`, default value type `EventEnvelope`, trusted packages limited to `org.social.common.events` and `org.social.common.kafka.support`.
+- **Service wiring**: each service that uses Kafka must add `org.social.common.kafka` to its `@ComponentScan` so `KafkaCommonProperties` and the auto-config are picked up.
+- **Per-service code layout**: producer / listener classes live under `<service>/messaging/`. Do **not** put event records in service modules.
+- **Idempotency**: consumers must be idempotent. Use `EventEnvelope.eventId` (or a `processed_event` table later) to skip duplicates.
+
+### Demo flow (ping / pong)
+| Step | Service | Action |
+|------|---------|--------|
+| 1 | chat-service | `GET /ping?msg=hello` → `PingPublisher` publishes `PingEvent` to `demo.ping` |
+| 2 | user-service | `PingListener` consumes `demo.ping`, logs the message, then publishes a `PongEvent` to `demo.pong` |
+| 3 | chat-service | `PongListener` consumes `demo.pong`, logs the reply |
+
+To trigger: call `GET http://localhost:9091/ping?msg=hello` (chat-service) and watch logs of both services.

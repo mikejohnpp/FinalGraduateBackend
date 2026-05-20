@@ -11,7 +11,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(basePackages = {"org.social.common.repositories"})
 @ComponentScan(basePackages = {
         "org.social.chatservice",
-        "org.social.common.exceptions"
+        "org.social.common.exceptions",
+        "org.social.common.kafka"
 })
 public class ChatServiceApplication {
 

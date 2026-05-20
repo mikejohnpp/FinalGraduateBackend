@@ -8,7 +8,6 @@ spring:
     name: api-gateway
   datasource:
     url: jdbc:mysql://100.106.249.45:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
-    #    url: jdbc:mysql://localhost:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
     username: root
     password: ""
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -45,6 +44,7 @@ spring:
                 - Path=/chat/**
               filters:
                 - StripPrefix=1
+
 jwt:
   secret: 9q7897937129387891375981312312312312131231192347192374973948712980347913274
   expiration: 86400000
