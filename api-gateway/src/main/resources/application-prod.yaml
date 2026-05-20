@@ -39,6 +39,12 @@ spring:
                 - Path=/users/**
               filters:
                 - StripPrefix=1
+            - id: chat-service
+              uri: http://chat-service:3000/
+              predicates:
+                - Path=/chat/**
+              filters:
+                - StripPrefix=1
 jwt:
   secret: 9q7897937129387891375981312312312312131231192347192374973948712980347913274
   expiration: 86400000

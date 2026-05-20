@@ -1,10 +1,10 @@
-package org.social.servicetemplete;
+package org.social.chatservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ServiceTempleteApplicationTests {
+class ChatServiceApplicationTests {
 
     @Test
     void contextLoads() {

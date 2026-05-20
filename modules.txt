@@ -1,2 +1,3 @@
 user-service
 api-gateway
+chat-service
