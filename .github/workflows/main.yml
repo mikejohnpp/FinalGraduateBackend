@@ -2,7 +2,8 @@ name: Main Pipeline
 
 on:
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -19,5 +20,7 @@ jobs:
         module: ${{ fromJson(needs.detect.outputs.modules) }}
 
     uses: ./.github/workflows/build-module.yml
+    secrets:
+      GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
     with:
       module: ${{ matrix.module }}
