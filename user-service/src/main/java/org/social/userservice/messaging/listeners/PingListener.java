@@ -1,4 +1,4 @@
-package org.social.userservice.messaging;
+package org.social.userservice.messaging.listeners;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

@@ -1,3 +1,4 @@
 user-service
 api-gateway
 chat-service
+notification-service

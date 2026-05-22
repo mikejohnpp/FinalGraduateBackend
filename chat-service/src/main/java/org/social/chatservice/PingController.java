@@ -1,7 +1,7 @@
 package org.social.chatservice;
 
 import lombok.RequiredArgsConstructor;
-import org.social.chatservice.messaging.PingPublisher;
+import org.social.chatservice.messaging.publishers.PingPublisher;
 import org.social.common.dto.ApiResponse;
 import org.social.common.events.PingEvent;
 import org.springframework.http.ResponseEntity;

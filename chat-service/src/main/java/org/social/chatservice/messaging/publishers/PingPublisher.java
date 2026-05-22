@@ -1,4 +1,4 @@
-package org.social.chatservice.messaging;
+package org.social.chatservice.messaging.publishers;
 
 import lombok.RequiredArgsConstructor;
 import org.social.common.events.PingEvent;

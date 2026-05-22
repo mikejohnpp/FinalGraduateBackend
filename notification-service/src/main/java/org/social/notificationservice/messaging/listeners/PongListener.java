@@ -1,4 +1,4 @@
-package org.social.chatservice.messaging;
+package org.social.notificationservice.messaging.listeners;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +18,12 @@ public class PongListener {
 
     @KafkaListener(
             topics = "${app.kafka.topics.demo-pong}",
-            groupId = "chat-service-demo",
+            groupId = "notification-service-demo",
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void onPong(EventEnvelope<Object> envelope, Acknowledgment ack) {
         PongEvent payload = kafkaObjectMapper.convertValue(envelope.payload(), PongEvent.class);
-        log.info("[chat-service] received PONG from={} replyTo={} message='{}' sentAt={} (eventId={})",
+        log.info("[notification-service] received PONG from={} replyTo={} message='{}' sentAt={} (eventId={})",
                 payload.from(),
                 payload.replyTo(),
                 payload.message(),
