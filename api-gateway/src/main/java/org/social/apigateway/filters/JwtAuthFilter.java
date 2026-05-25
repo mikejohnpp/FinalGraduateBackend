@@ -1,13 +1,17 @@
 package org.social.apigateway.filters;
 
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.social.apigateway.services.JWTService;
 import org.social.apigateway.services.UserService;
+import org.social.common.exceptions.ErrorCode;
+import org.social.common.exceptions.ErrorResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +29,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JWTService jwtService;
     private final UserService userService;
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .findAndRegisterModules()
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -57,25 +64,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
             filterChain.doFilter(request, response);
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            
-            java.util.Map<String, Object> errorDetails = new java.util.HashMap<>();
-            errorDetails.put("success", false);
-            errorDetails.put("message", "Token đã hết hạn. Vui lòng đăng nhập lại hoặc sử dụng Refresh Token.");
-            
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            mapper.writeValue(response.getOutputStream(), errorDetails);
+            writeErrorResponse(response, request, ErrorCode.INVALID_TOKEN, "Token đã hết hạn. Vui lòng đăng nhập lại hoặc sử dụng Refresh Token.");
         } catch (io.jsonwebtoken.JwtException e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            
-            java.util.Map<String, Object> errorDetails = new java.util.HashMap<>();
-            errorDetails.put("success", false);
-            errorDetails.put("message", "Token không hợp lệ.");
-            
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            mapper.writeValue(response.getOutputStream(), errorDetails);
+            writeErrorResponse(response, request, ErrorCode.INVALID_TOKEN, "Token không hợp lệ.");
         }
+    }
+
+    private void writeErrorResponse(HttpServletResponse response, HttpServletRequest request,
+                                     ErrorCode errorCode, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .success(false)
+                .message(message)
+                .data(null)
+                .code(errorCode.getCode())
+                .build();
+
+        MAPPER.writeValue(response.getOutputStream(), errorResponse);
     }
 }

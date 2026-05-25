@@ -11,14 +11,13 @@ import org.social.common.entities.Group;
 import org.social.common.entities.Post;
 import org.social.common.entities.PostDetail;
 import org.social.common.entities.User;
+import org.social.common.exceptions.ResourceNotFoundException;
 import org.social.common.repositories.PostDetailRepository;
 import org.social.common.repositories.PostRepository;
 import org.social.common.repositories.UserRepository;
 import org.social.userservice.services.PostService;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,7 +34,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public PostDTO create(PostCreateRequest request) {
         User user = userRepository.findById(Long.valueOf(request.userId()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy user với id: " + request.userId()));
+                .orElseThrow(() -> new ResourceNotFoundException("User", request.userId()));
 
         Post post = new Post();
         post.setUser(user);
@@ -75,7 +74,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public PostDetailDTO getById(Integer id) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài viết với id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Bài viết", id));
 
         List<PostDetail> details = postDetailRepository.findByPost_Id(id);
         return PostMapper.toDetailDTO(post, details);
@@ -85,7 +84,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public PostDetailDTO update(Integer id, PostUpdateRequest request) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài viết với id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Bài viết", id));
 
         // Xóa toàn bộ PostDetail cũ, thay bằng list mới
         postDetailRepository.deleteByPost_Id(id);
@@ -108,7 +107,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public void delete(Integer id) {
         if (!postRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài viết với id: " + id);
+            throw new ResourceNotFoundException("Bài viết", id);
         }
         // Xóa PostDetail trước, sau đó xóa Post
         postDetailRepository.deleteByPost_Id(id);
