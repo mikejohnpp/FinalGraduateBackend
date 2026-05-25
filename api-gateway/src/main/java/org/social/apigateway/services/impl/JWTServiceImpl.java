@@ -8,6 +8,7 @@ import io.jsonwebtoken.security.Keys;
 import org.social.apigateway.services.JWTService;
 import org.social.apigateway.services.UserService;
 import org.social.common.entities.User;
+import org.social.common.exceptions.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -31,7 +32,8 @@ public class JWTServiceImpl implements JWTService {
 
     @Override
     public String generateToken(String email) {
-        User user = userService.findByEmail(email).orElseThrow();
+        User user = userService.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", email));
 //        List<String> roles = user.getRole().stream()
 //                .map(Role::getName)
 //                .toList();
@@ -50,7 +52,8 @@ public class JWTServiceImpl implements JWTService {
 
     @Override
     public String createRefreshToken(String email) {
-        User user = userService.findByEmail(email).orElseThrow();
+        User user = userService.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", email));
 //        List<String> roles = user.getRoles().stream()
 //                .map(Role::getTenQuyen)
 //                .toList();

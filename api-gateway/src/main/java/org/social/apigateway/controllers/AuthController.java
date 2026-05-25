@@ -10,7 +10,7 @@ import org.social.common.dto.JwtAuthResponse;
 import org.social.common.dto.LoginRequest;
 import org.social.common.dto.RegisterRequest;
 import org.social.common.entities.User;
-import org.social.common.exceptions.BusinessException;
+import org.social.common.exceptions.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -58,7 +58,7 @@ public class AuthController {
             String refreshToken = jwtService.createRefreshToken(request.getEmail());
 
             User user = userService.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
+                    .orElseThrow(() -> new ResourceNotFoundException("User", request.getEmail()));
 
             Cookie cookie = new Cookie("refreshToken", refreshToken);
             cookie.setHttpOnly(true);
@@ -99,29 +99,25 @@ public class AuthController {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Không tìm thấy refresh token trong cookie.");
         }
 
-        try {
-            String email = jwtService.extractEmail(refreshToken);
-            org.springframework.security.core.userdetails.UserDetails userDetails = userService.loadUserByUsername(email);
+        String email = jwtService.extractEmail(refreshToken);
+        org.springframework.security.core.userdetails.UserDetails userDetails = userService.loadUserByUsername(email);
 
-            if (jwtService.validateToken(refreshToken, userDetails)) {
-                String newToken = jwtService.generateToken(email);
-                String newRefreshToken = jwtService.createRefreshToken(email);
+        if (jwtService.validateToken(refreshToken, userDetails)) {
+            String newToken = jwtService.generateToken(email);
+            String newRefreshToken = jwtService.createRefreshToken(email);
 
-                User user = userService.findByEmail(email)
-                        .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
+            User user = userService.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", email));
 
-                Cookie cookie = new Cookie("refreshToken", newRefreshToken);
-                cookie.setHttpOnly(true);
-                cookie.setPath("/");
-                cookie.setMaxAge(7 * 24 * 60 * 60); // 7 ngày
-                // cookie.setSecure(true); // Bỏ comment nếu chạy HTTPS
-                response.addCookie(cookie);
+            Cookie cookie = new Cookie("refreshToken", newRefreshToken);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(7 * 24 * 60 * 60); // 7 ngày
+            // cookie.setSecure(true); // Bỏ comment nếu chạy HTTPS
+            response.addCookie(cookie);
 
-                return ApiResponse.ok("Làm mới token thành công!", new JwtAuthResponse(newToken, user.getId()));
-            } else {
-                return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Refresh token không hợp lệ hoặc đã hết hạn.");
-            }
-        } catch (Exception e) {
+            return ApiResponse.ok("Làm mới token thành công!", new JwtAuthResponse(newToken, user.getId()));
+        } else {
             return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Refresh token không hợp lệ hoặc đã hết hạn.");
         }
     }
