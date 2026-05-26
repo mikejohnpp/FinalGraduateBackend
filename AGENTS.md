@@ -13,8 +13,11 @@
 
 ### `common` (jar)
 Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Contains:
-- **Entities**: `User`, `Role`, `RoleDetail`, `Post`, `PostDetail`, `Comment`, `Message`, `Conversation`, `ConversationUser`, `ConversationUserId`, `Group`, `UserGroup`, `UserGroupId`, `UserFriend`, `UserFriendId`
-- **DTOs (root)**: `LoginRequest`, `RegisterRequest`, `ApiResponse`, `JwtAuthResponse`
+- **Entities**: `User`, `Role`, `RoleDetail`, `Post`, `PostLike`, `PostLikeId`, `Comment`, `Message`, `Conversation`, `ConversationUser`, `ConversationUserId`, `Group`, `UserGroup`, `UserGroupId`, `UserFriend`, `UserFriendId`
+- **Soft delete**: Entities `User`, `Role`, `Post`, `Comment`, `Message`, `Conversation`, `Group` all have an `isActive` (`TINYINT(1) DEFAULT 1`) column. Services must query only active records (e.g. `findByIdAndIsActiveTrue`). Deletes set `isActive = false` instead of physically removing rows.
+- **DTOs (root)**: `LoginRequest`, `RegisterRequest`, `ApiResponse`, `JwtAuthResponse`, `CursorPageResponse<T>`, `PageResponse<T>`
+  - `CursorPageResponse<T>` — record(`data`, `nextCursor`, `hasMore`); used for infinite scroll / cursor-based pagination
+  - `PageResponse<T>` — record(`data`, `page`, `size`, `totalElements`, `totalPages`, `hasNext`, `hasPrevious`); used for standard offset pagination
 - **DTOs (user sub-package)** — `dto/user/views/` and `dto/user/mappers/`:
   - `UserDTO` — record(`name`, `RoleDTO role`); used for general responses
   - `UserNoAuthenticateDTO` — record(`name`, `role`); public-facing, no sensitive fields
@@ -22,15 +25,16 @@ Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Cont
   - `RoleDTO` — record(`name`); flat, no back-reference to users
   - `UserMapper` — static utility class; methods: `mapUserToUserDTO`, `mapUserToUserNoAuthenticate`, `mapUserToUserWithAuthenticate`
 - **DTOs (post sub-package)** — `dto/post/views/`, `dto/post/mappers/`, `dto/post/requests/`:
-  - `PostDTO` — record(`id`, `authorName`, `isGroupPosted`, `createdAt`); basic post view after creation
-  - `PostSummaryDTO` — record(`id`, `authorName`, `isGroupPosted`, `createdAt`, `commentCount`); list view with comment count
-  - `PostDetailDTO` — record(`id`, `authorName`, `isGroupPosted`, `createdAt`, `contents`); full detail with content list
-  - `PostCreateRequest` — record(`userId`, `isGroupPosted`, `groupId`, `contents`); validated request for creating a post
-  - `PostUpdateRequest` — record(`contents`); validated request for updating post contents
+  - `PostDTO` — record(`id`, `authorName`, `isGroupPosted`, `createdAt`, `content`, `likeCount`); basic post view after creation
+  - `PostSummaryDTO` — record(`id`, `authorName`, `isGroupPosted`, `createdAt`, `commentCount`, `content`, `likeCount`); list view with comment count, content, and likes
+  - `PostDetailDTO` — record(`id`, `authorName`, `isGroupPosted`, `createdAt`, `content`, `likeCount`); full detail view with likes
+  - `PostCreateRequest` — record(`userId`, `isGroupPosted`, `groupId`, `content`); validated request for creating a post
+  - `PostUpdateRequest` — record(`content`); validated request for updating post content
+  - `PostLikeRequest` — record(`userId`); validated request for liking/unliking a post
   - `PostMapper` — static utility class; methods: `toPostDTO`, `toSummaryDTO`, `toDetailDTO`
 - **Events**: `events/PingEvent`, `events/PongEvent` (Kafka transport records, top-level package, **not** under `dto/`)
 - **Kafka kernel** (`kafka/`): `KafkaTopics`, `KafkaHeaders`, `support/EventEnvelope`, `support/EventPublisher`, `config/KafkaCommonProperties`, `config/KafkaErrorHandlingConfig`
-- **Repositories**: `UserRepository`, `RoleRepository`, `CommentRepository`, `PostRepository`, `PostDetailRepository`
+- **Repositories**: `UserRepository`, `RoleRepository`, `CommentRepository`, `PostRepository`, `PostLikeRepository`
 - **Config**: `WebConfig`, `ResponseApi` (legacy — do not use in new code)
 - **Exception handling**:
   - `exceptions/GlobalExceptionHandler.java` — `@RestControllerAdvice`; handles 10 exception types (see below)
@@ -83,9 +87,10 @@ User-facing microservice. Runs on port **9090** (dev profile), **8080** (prod pr
 Entrypoint: `UserServiceApplication.java` — annotated with `@EntityScan("org.social.common.entities")`, `@EnableJpaRepositories("org.social.common.repositories")`, and `@ComponentScan` covering `org.social.userservice` + `org.social.common.exceptions` + `org.social.common.kafka`.
 
 Key source files:
-- `controllers/PostController.java` — `@RequestMapping("/posts")`; full CRUD for posts
-- `services/PostService.java` — interface with `create`, `getAll`, `getById`, `update`, `delete`
-- `services/impl/PostServiceImpl.java` — post CRUD implementation using `PostRepository`, `PostDetailRepository`, `UserRepository`
+- `controllers/PostController.java` — `@RequestMapping("/posts")`; full CRUD for posts + like/unlike + search/suggested
+- `services/PostService.java` — interface with `create`, `getAll`, `getSuggested`, `getFiltered`, `getById`, `update`, `delete`, `like`, `unlike`
+- `services/impl/PostServiceImpl.java` — post CRUD + like + pagination implementation using `PostRepository`, `PostLikeRepository`, `UserRepository`
+- `specifications/PostSpecification.java` — JPA Criteria API Specifications for dynamic filtering (`isActive`, `byUserId`, `byIsGroupPosted`, `byGroupId`, `contentContains`)
 - `services/UserService.java` — interface with `getAll()` method
 - `services/impl/UserServiceImpl.java` — queries `UserRepository.findAll()`
 - `messaging/UserKafkaConfig.java` — Kafka producer/consumer config
@@ -94,11 +99,15 @@ Key source files:
 Post REST endpoints (`/posts`, proxied via gateway as `/users/posts`):
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/posts` | — | Create a new post |
-| GET | `/posts` | — | List all posts (summary view with comment count) |
-| GET | `/posts/{id}` | — | Get post detail with contents |
-| PUT | `/posts/{id}` | — | Update post contents (replaces all PostDetails) |
-| DELETE | `/posts/{id}` | — | Delete a post and its details |
+| POST | `/posts` | — | Create a new post; returns `201 Created` |
+| GET | `/posts` | — | List all posts (summary view with comment count, content, likeCount) |
+| GET | `/posts/suggested?userId=&cursor=&size=10` | — | Cursor-based infinite scroll feed (default `size=10`); returns `CursorPageResponse` |
+| GET | `/posts/search?keyword=&userId=&isGroupPosted=&groupId=&page=0&size=10&sortDir=desc` | — | Standard pagination with dynamic filters; returns `PageResponse` |
+| GET | `/posts/{id}` | — | Get post detail |
+| PUT | `/posts/{id}` | — | Update post content |
+| DELETE | `/posts/{id}` | — | Soft delete a post (`isActive = false`) |
+| POST | `/posts/{id}/like` | — | Like a post; body `{"userId": N}`; returns `201 Created` |
+| DELETE | `/posts/{id}/like` | — | Unlike a post; body `{"userId": N}` |
 
 ### `chat-service`
 Chat/messaging microservice. Runs on port **9091** (dev profile), **8080** (prod profile). Key deps:
@@ -218,6 +227,31 @@ All services use **Spring profile-based configuration**. Config is in `applicati
 - CORS allows only `http://localhost:5173` (Vite dev server) — update `Endpoints.front_end_host` for production
 - When adding a new module, register it in root `pom.xml` `<modules>` **and** `modules.txt`
 - Downstream services consume entities/repositories from `common` — must annotate the main class with `@EntityScan` and `@EnableJpaRepositories` pointing to `org.social.common.*` packages
+
+## Soft delete conventions
+- All major entities (`User`, `Role`, `Post`, `Comment`, `Message`, `Conversation`, `Group`) have an `isActive` column (`TINYINT(1) DEFAULT 1`).
+- Join/mapping tables (`UserFriend`, `UserGroup`, `PostLike`, `ConversationUser`) do **not** have `isActive` — they are physically deleted.
+- Services must **never** call `deleteById()` on soft-deletable entities. Instead, set `isActive = false` and `save()`.
+- Repositories should provide `findByIdAndIsActiveTrue()` and all list queries must filter `WHERE isActive = true`.
+- Soft-deleted records are retained for analytics, auditing, and potential future restoration.
+
+## Pagination conventions
+
+### Cursor pagination (infinite scroll)
+- Used for feed-style endpoints (e.g. suggested posts).
+- Response DTO: `CursorPageResponse<T>` — record(`data`, `nextCursor`, `hasMore`).
+- `cursor` = ISO-8601 timestamp of the last item seen; `null` on first request → defaults to `Instant.now()`.
+- Query fetches `size + 1` rows to detect `hasMore` without a separate `COUNT(*)`.
+- `nextCursor` = `createdAt` of the last item in the returned batch.
+- Repository pattern: `@Query("... WHERE p.createdAt < :cursor ORDER BY p.createdAt DESC")` + `Pageable`.
+
+### Standard offset pagination (search / admin)
+- Used for searchable/filterable endpoints.
+- Response DTO: `PageResponse<T>` — record(`data`, `page`, `size`, `totalElements`, `totalPages`, `hasNext`, `hasPrevious`).
+- `page` is 0-indexed; `sortDir` accepts `"asc"` or `"desc"` (default: `"desc"` by `createdAt`).
+- Built with **JPA Specification** for dynamic query building. Each filter is a static method returning `Specification<T>` (returns `null` predicate when param is absent → automatically excluded).
+- Specifications are placed in `<service>/specifications/` package (e.g. `PostSpecification`).
+- Repository must extend `JpaSpecificationExecutor<T>` and override `findAll(Specification, Pageable)` with `@EntityGraph` to avoid N+1.
 
 ## Exception handling conventions
 - The project uses a **centralized exception handling architecture**. Controllers should **never** use `try/catch` or return `ResponseEntity` manually for errors. Services should simply `throw` exceptions.

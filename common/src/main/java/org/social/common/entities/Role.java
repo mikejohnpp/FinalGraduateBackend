@@ -30,4 +30,8 @@ public class Role {
 
     @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
     private Set<User> users = new LinkedHashSet<>();
+
+    @org.hibernate.annotations.ColumnDefault("1")
+    @Column(name = "is_active")
+    private Boolean isActive;
 }
