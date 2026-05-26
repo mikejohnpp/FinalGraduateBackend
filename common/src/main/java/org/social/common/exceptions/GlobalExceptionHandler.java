@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAppException(AppException ex, HttpServletRequest req) {
         ErrorCode errorCode = ex.getErrorCode();
         log.warn("[{}] {} — path={}", errorCode.getCode(), ex.getMessage(), req.getRequestURI());
-        return buildResponse(errorCode.getStatus(), errorCode.getCode(), ex.getMessage(), req, null);
+        return buildResponse(errorCode.getStatus(), errorCode.getCode(), ex.getMessage(), req, ex.getData());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -113,12 +113,12 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String code, String message,
-                                                         HttpServletRequest req, Map<String, String> fieldErrors) {
+                                                         HttpServletRequest req, Object data) {
         ErrorResponse body = ErrorResponse.builder()
                 .success(false)
                 .code(code)
                 .message(message)
-                .data(fieldErrors)
+                .data(data)
                 .build();
         return ResponseEntity.status(status).body(body);
     }

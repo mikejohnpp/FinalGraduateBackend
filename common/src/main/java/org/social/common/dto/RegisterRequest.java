@@ -12,6 +12,9 @@ public class RegisterRequest {
     @Email(message = "Email không đúng định dạng")
     private String email;
 
+    @NotBlank(message = "Tên tài khoản không được để trống")
+    private String userName;
+
     @NotBlank(message = "Mật khẩu không được để trống")
     @Pattern(
             regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$",
