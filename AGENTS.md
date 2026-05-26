@@ -242,6 +242,13 @@ All services use **Spring profile-based configuration**. Config is in `applicati
      }
      ```
      *(Legacy constructors like `new BusinessException("message")` still work, but new code should leverage `ErrorCode`).*
+   - **Returning dynamic data payload**: If you need to return dynamic custom data/metadata with the error (e.g. rate limit details, lock expiration times, custom maps), call `.withData(Object)` fluently:
+     ```java
+     Map<String, Object> errorDetails = Map.of("retryAfterSeconds", 30, "reason", "Too many attempts");
+     throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "Yêu cầu quá nhiều lần")
+         .withData(errorDetails);
+     ```
+     This custom data payload will be automatically mapped to the `data` field in the standardized `ErrorResponse` returned to the client.
 3. **Validation Errors (400)**:
    - Simply annotate controller payload parameters with `@Valid` or `@Validated`. 
    - `GlobalExceptionHandler` will automatically catch `MethodArgumentNotValidException` or `ConstraintViolationException` and format the field errors into the `ErrorResponse`'s `data` field.

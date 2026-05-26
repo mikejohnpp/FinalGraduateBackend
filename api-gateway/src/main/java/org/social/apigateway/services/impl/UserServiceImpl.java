@@ -7,6 +7,7 @@ import org.social.common.dto.RegisterRequest;
 import org.social.common.entities.Role;
 import org.social.common.entities.User;
 import org.social.common.exceptions.BusinessException;
+import org.social.common.exceptions.ErrorCode;
 import org.social.common.repositories.RoleRepository;
 import org.social.common.repositories.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,12 +35,16 @@ public class UserServiceImpl implements UserService {
     public void register(RegisterRequest request) {
         // Kiểm tra 2 mật khẩu có khớp không
         if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new BusinessException("Mật khẩu xác nhận không khớp!");
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED).withData(Map.of(
+                    "confirmPassword", "Mật khẩu xác nhận không khớp!"
+            ));
         }
 
         // Kiểm tra email đã tồn tại chưa
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("Email đã được sử dụng!");
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED).withData(Map.of(
+                    "email", "Email đã được sử dụng!"
+            ));
         }
 
         // Tạo mã kích hoạt ngẫu nhiên + đặt thời hạn 24h
@@ -50,7 +56,7 @@ public class UserServiceImpl implements UserService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setUserName(" ");
+        user.setUserName(request.getUserName());
         user.setIsActive(false); // Chưa kích hoạt
         user.setActive(true);
         user.setActiveCode(maKichHoat);
