@@ -1,10 +1,13 @@
 package org.social.common.dto.post.views;
 
+import org.social.common.dto.user.views.AuthorDTO;
 import java.time.Instant;
 
 public record PostDTO(
         Integer id,
-        String authorName,
+        AuthorDTO author,
         Boolean isGroupPosted,
-        Instant createdAt
+        Instant createdAt,
+        String content,
+        long likeCount
 ) {}

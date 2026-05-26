@@ -2,6 +2,7 @@
 POST {{host}}/api/auth/register
 {
   "email": "hurltest@example.com",
+  "userName": "hurltest",
   "password": "Password123!",
   "confirmPassword": "Password123!"
 }
@@ -22,9 +23,9 @@ POST {{host}}/users/posts
 Authorization: Bearer {{token}}
 {
   "userId": {{userId}},
-  "contents": ["Hello from Hurl!", "This is a second paragraph."]
+  "content": "Hello from Hurl! This is a clean single paragraph."
 }
-HTTP 200
+HTTP 201
 [Captures]
 postId: jsonpath "$.data.id"
 
@@ -35,17 +36,18 @@ HTTP 200
 [Asserts]
 jsonpath "$.success" == true
 jsonpath "$.data.id" == {{postId}}
+jsonpath "$.data.content" == "Hello from Hurl! This is a clean single paragraph."
 
 # 5. Update the Post
 PUT {{host}}/users/posts/{{postId}}
 Authorization: Bearer {{token}}
 {
-  "contents": ["Updated Hurl content"]
+  "content": "Updated Hurl content"
 }
 HTTP 200
 [Asserts]
 jsonpath "$.success" == true
-jsonpath "$.data.contents[0]" == "Updated Hurl content"
+jsonpath "$.data.content" == "Updated Hurl content"
 
 # 6. Get all Posts
 GET {{host}}/users/posts

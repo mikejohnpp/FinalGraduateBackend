@@ -38,5 +38,9 @@ public class Conversation {
     @OneToMany(mappedBy = "conversation")
     private Set<Message> messages = new LinkedHashSet<>();
 
+    @ColumnDefault("1")
+    @Column(name = "is_active")
+    private Boolean isActive;
+
 
 }

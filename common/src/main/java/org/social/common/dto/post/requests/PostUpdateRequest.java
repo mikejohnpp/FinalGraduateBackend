@@ -1,9 +1,7 @@
 package org.social.common.dto.post.requests;
 
-import jakarta.validation.constraints.NotEmpty;
-
-import java.util.List;
+import jakarta.validation.constraints.NotBlank;
 
 public record PostUpdateRequest(
-        @NotEmpty(message = "Nội dung bài viết không được để trống") List<@NotEmpty(message = "Nội dung không được để trống") String> contents
+        @NotBlank(message = "Nội dung bài viết không được để trống") String content
 ) {}
