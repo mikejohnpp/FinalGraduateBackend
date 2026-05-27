@@ -17,6 +17,7 @@ public enum ErrorCode {
     ACCOUNT_LOCKED("Tài khoản đã bị khóa", HttpStatus.UNAUTHORIZED),
     INVALID_CREDENTIALS("Email hoặc mật khẩu không đúng", HttpStatus.UNAUTHORIZED),
     INVALID_TOKEN("Token không hợp lệ hoặc đã hết hạn", HttpStatus.UNAUTHORIZED),
+    FORBIDDEN("Bạn không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN),
     EXTERNAL_ERROR("Lỗi kết nối {0}", HttpStatus.BAD_GATEWAY),
     INTERNAL_ERROR("Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR);
 

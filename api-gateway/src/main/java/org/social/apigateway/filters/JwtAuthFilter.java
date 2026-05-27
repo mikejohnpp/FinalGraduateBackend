@@ -50,6 +50,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             jwt = authHeader.substring(7);
             userEmail = jwtService.extractEmail(jwt);
 
+            HttpServletRequest mutatedRequest = request;
+
             if (StringUtils.hasText(userEmail) && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userService.loadUserByUsername(userEmail);
 
@@ -60,9 +62,32 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     context.setAuthentication(authToken);
                     SecurityContextHolder.setContext(context);
+
+                    mutatedRequest = new jakarta.servlet.http.HttpServletRequestWrapper(request) {
+                        @Override
+                        public String getHeader(String name) {
+                            if ("X-User-Email".equalsIgnoreCase(name)) return userEmail;
+                            return super.getHeader(name);
+                        }
+
+                        @Override
+                        public java.util.Enumeration<String> getHeaderNames() {
+                            java.util.List<String> names = java.util.Collections.list(super.getHeaderNames());
+                            names.add("X-User-Email");
+                            return java.util.Collections.enumeration(names);
+                        }
+
+                        @Override
+                        public java.util.Enumeration<String> getHeaders(String name) {
+                            if ("X-User-Email".equalsIgnoreCase(name)) {
+                                return java.util.Collections.enumeration(java.util.List.of(userEmail));
+                            }
+                            return super.getHeaders(name);
+                        }
+                    };
                 }
             }
-            filterChain.doFilter(request, response);
+            filterChain.doFilter(mutatedRequest, response);
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
             writeErrorResponse(response, request, ErrorCode.INVALID_TOKEN, "Token đã hết hạn. Vui lòng đăng nhập lại hoặc sử dụng Refresh Token.");
         } catch (io.jsonwebtoken.JwtException e) {
