@@ -24,6 +24,9 @@ public interface PostRepository extends JpaRepository<Post, Integer>, JpaSpecifi
     @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND p.createdAt < :cursor ORDER BY p.createdAt DESC")
     List<Post> findActivePostsBefore(@Param("cursor") Instant cursor, Pageable pageable);
 
+    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND p.group.id IN :groupIds AND p.createdAt < :cursor ORDER BY p.createdAt DESC")
+    List<Post> findActivePostsByGroupIdsBefore(@Param("groupIds") List<Integer> groupIds, @Param("cursor") Instant cursor, Pageable pageable);
+
     @Override
     @EntityGraph(attributePaths = {"user"})
     Page<Post> findAll(Specification<Post> spec, Pageable pageable);

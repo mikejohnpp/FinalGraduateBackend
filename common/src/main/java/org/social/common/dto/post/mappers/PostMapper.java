@@ -1,5 +1,6 @@
 package org.social.common.dto.post.mappers;
 
+import org.social.common.dto.group.mappers.GroupMapper;
 import org.social.common.dto.post.views.PostDetailDTO;
 import org.social.common.dto.post.views.PostDTO;
 import org.social.common.dto.post.views.PostSummaryDTO;
@@ -19,23 +20,27 @@ public class PostMapper {
         );
     }
 
-    public static PostDTO toPostDTO(Post post) {
+    public static PostDTO toPostDTO(Post post, String authorRole) {
         return new PostDTO(
                 post.getId(),
                 toAuthorDTO(post.getUser()),
+                authorRole,
                 post.getIsGroupPosted(),
+                GroupMapper.toSummaryDTO(post.getGroup()),
                 post.getCreatedAt(),
                 post.getContent(),
                 0L
         );
     }
 
-    public static PostSummaryDTO toSummaryDTO(Post post, long likeCount) {
+    public static PostSummaryDTO toSummaryDTO(Post post, long likeCount, String authorRole) {
         int commentCount = post.getComments() != null ? post.getComments().size() : 0;
         return new PostSummaryDTO(
                 post.getId(),
                 toAuthorDTO(post.getUser()),
+                authorRole,
                 post.getIsGroupPosted(),
+                GroupMapper.toSummaryDTO(post.getGroup()),
                 post.getCreatedAt(),
                 commentCount,
                 post.getContent(),
@@ -43,11 +48,13 @@ public class PostMapper {
         );
     }
 
-    public static PostDetailDTO toDetailDTO(Post post, long likeCount) {
+    public static PostDetailDTO toDetailDTO(Post post, long likeCount, String authorRole) {
         return new PostDetailDTO(
                 post.getId(),
                 toAuthorDTO(post.getUser()),
+                authorRole,
                 post.getIsGroupPosted(),
+                GroupMapper.toSummaryDTO(post.getGroup()),
                 post.getCreatedAt(),
                 post.getContent(),
                 likeCount
