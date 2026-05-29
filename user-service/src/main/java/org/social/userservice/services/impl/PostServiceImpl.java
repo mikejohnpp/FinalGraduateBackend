@@ -9,15 +9,13 @@ import org.social.common.dto.post.requests.PostUpdateRequest;
 import org.social.common.dto.post.views.PostDTO;
 import org.social.common.dto.post.views.PostDetailDTO;
 import org.social.common.dto.post.views.PostSummaryDTO;
-import org.social.common.entities.Group;
-import org.social.common.entities.Post;
-import org.social.common.entities.PostLike;
-import org.social.common.entities.User;
+import org.social.common.entities.*;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
 import org.social.common.repositories.PostLikeRepository;
 import org.social.common.repositories.PostRepository;
+import org.social.common.repositories.UserGroupRepository;
 import org.social.common.repositories.UserRepository;
 import org.social.userservice.services.PostService;
 import org.social.userservice.specifications.PostSpecification;
@@ -38,6 +36,16 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
     private final UserRepository userRepository;
+    private final UserGroupRepository userGroupRepository;
+
+    private String getAuthorRole(Post post) {
+        if (Boolean.TRUE.equals(post.getIsGroupPosted()) && post.getGroup() != null) {
+            return userGroupRepository.findByUserIdAndGroupId(post.getUser().getId(), post.getGroup().getId())
+                    .map(UserGroup::getRole)
+                    .orElse(null);
+        }
+        return null;
+    }
 
     @Override
     @Transactional
@@ -52,29 +60,30 @@ public class PostServiceImpl implements PostService {
         post.setCreatedAt(Instant.now());
         post.setIsActive(true);
 
-        if (request.groupId() != null) {
+        if (Boolean.TRUE.equals(request.isGroupPosted()) && request.groupId() != null) {
+            if (!userGroupRepository.existsByUserIdAndGroupId(request.userId(), request.groupId())) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Bạn không phải thành viên của nhóm này");
+            }
             Group group = new Group();
             group.setId(request.groupId());
             post.setGroup(group);
         }
 
         Post savedPost = postRepository.save(post);
-        return PostMapper.toPostDTO(savedPost);
+        return PostMapper.toPostDTO(savedPost, getAuthorRole(savedPost));
     }
 
     @Override
     public List<PostSummaryDTO> getAll() {
         return postRepository.findAllWithUser().stream()
-                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId())))
+                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post)))
                 .toList();
     }
 
     @Override
     public CursorPageResponse<PostSummaryDTO> getSuggested(Integer userId, String cursor, int size) {
-        // TODO: Trong tương lai sẽ implement thuật toán lấy bài viết tương ứng với sự quan tâm của user
         Instant cursorInstant = (cursor != null) ? Instant.parse(cursor) : Instant.now();
 
-        // Lấy size+1 để phát hiện xem còn bài viết tiếp theo không
         List<Post> posts = postRepository.findActivePostsBefore(cursorInstant, PageRequest.of(0, size + 1));
 
         boolean hasMore = posts.size() > size;
@@ -83,7 +92,7 @@ public class PostServiceImpl implements PostService {
         String nextCursor = pageData.isEmpty() ? null : pageData.getLast().getCreatedAt().toString();
 
         List<PostSummaryDTO> dtos = pageData.stream()
-                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId())))
+                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post)))
                 .toList();
 
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);
@@ -94,7 +103,7 @@ public class PostServiceImpl implements PostService {
         Post post = postRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bài viết", id));
         long likeCount = postLikeRepository.countByPostId(id);
-        return PostMapper.toDetailDTO(post, likeCount);
+        return PostMapper.toDetailDTO(post, likeCount, getAuthorRole(post));
     }
 
     @Override
@@ -106,7 +115,7 @@ public class PostServiceImpl implements PostService {
         post.setContent(request.content());
         Post savedPost = postRepository.save(post);
         long likeCount = postLikeRepository.countByPostId(id);
-        return PostMapper.toDetailDTO(savedPost, likeCount);
+        return PostMapper.toDetailDTO(savedPost, likeCount, getAuthorRole(savedPost));
     }
 
     @Override
@@ -162,7 +171,7 @@ public class PostServiceImpl implements PostService {
         Page<Post> postPage = postRepository.findAll(spec, pageable);
 
         List<PostSummaryDTO> dtos = postPage.getContent().stream()
-                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId())))
+                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post)))
                 .toList();
 
         return new PageResponse<>(
