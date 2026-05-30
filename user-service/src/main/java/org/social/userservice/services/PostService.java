@@ -14,13 +14,13 @@ public interface PostService {
 
     PostDTO create(PostCreateRequest request);
 
-    List<PostSummaryDTO> getAll();
+    List<PostSummaryDTO> getAll(Integer userId);
 
     CursorPageResponse<PostSummaryDTO> getSuggested(Integer userId, String cursor, int size);
 
-    PostDetailDTO getById(Integer id);
+    PostDetailDTO getById(Integer id, Integer userId);
 
-    PostDetailDTO update(Integer id, PostUpdateRequest request);
+    PostDetailDTO update(Integer id, PostUpdateRequest request, Integer userId);
 
     void delete(Integer id);
 

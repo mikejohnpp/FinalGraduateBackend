@@ -20,7 +20,7 @@ public class PostMapper {
         );
     }
 
-    public static PostDTO toPostDTO(Post post, String authorRole) {
+    public static PostDTO toPostDTO(Post post, String authorRole, boolean hasLiked) {
         return new PostDTO(
                 post.getId(),
                 toAuthorDTO(post.getUser()),
@@ -29,11 +29,12 @@ public class PostMapper {
                 GroupMapper.toSummaryDTO(post.getGroup()),
                 post.getCreatedAt(),
                 post.getContent(),
-                0L
+                0L,
+                hasLiked
         );
     }
 
-    public static PostSummaryDTO toSummaryDTO(Post post, long likeCount, String authorRole) {
+    public static PostSummaryDTO toSummaryDTO(Post post, long likeCount, String authorRole, boolean hasLiked) {
         int commentCount = post.getCommentCount() != null ? post.getCommentCount() : 0;
         long currentLikeCount = post.getLikeCount() != null ? post.getLikeCount() : likeCount;
         return new PostSummaryDTO(
@@ -45,11 +46,12 @@ public class PostMapper {
                 post.getCreatedAt(),
                 commentCount,
                 post.getContent(),
-                currentLikeCount
+                currentLikeCount,
+                hasLiked
         );
     }
 
-    public static PostDetailDTO toDetailDTO(Post post, long likeCount, String authorRole) {
+    public static PostDetailDTO toDetailDTO(Post post, long likeCount, String authorRole, boolean hasLiked) {
         long currentLikeCount = post.getLikeCount() != null ? post.getLikeCount() : likeCount;
         return new PostDetailDTO(
                 post.getId(),
@@ -59,7 +61,8 @@ public class PostMapper {
                 GroupMapper.toSummaryDTO(post.getGroup()),
                 post.getCreatedAt(),
                 post.getContent(),
-                currentLikeCount
+                currentLikeCount,
+                hasLiked
         );
     }
 }

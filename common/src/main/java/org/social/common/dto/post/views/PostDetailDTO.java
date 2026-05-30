@@ -13,5 +13,6 @@ public record PostDetailDTO(
         GroupSummaryDTO group,
         Instant createdAt,
         String content,
-        long likeCount
+        long likeCount,
+        Boolean hasLiked
 ) {}

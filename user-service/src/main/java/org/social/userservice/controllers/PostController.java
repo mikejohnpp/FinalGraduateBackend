@@ -32,8 +32,8 @@ public class PostController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PostSummaryDTO>>> getAll() {
-        List<PostSummaryDTO> list = postService.getAll();
+    public ResponseEntity<ApiResponse<List<PostSummaryDTO>>> getAll(@RequestParam(required = false) Integer userId) {
+        List<PostSummaryDTO> list = postService.getAll(userId);
         return ApiResponse.ok("Lấy danh sách bài viết thành công!", list);
     }
 
@@ -60,16 +60,19 @@ public class PostController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<PostDetailDTO>> getById(@PathVariable Integer id) {
-        PostDetailDTO dto = postService.getById(id);
+    public ResponseEntity<ApiResponse<PostDetailDTO>> getById(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Integer userId) {
+        PostDetailDTO dto = postService.getById(id, userId);
         return ApiResponse.ok("Lấy chi tiết bài viết thành công!", dto);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PostDetailDTO>> update(
             @PathVariable Integer id,
+            @RequestParam(required = false) Integer userId,
             @Validated @RequestBody PostUpdateRequest request) {
-        PostDetailDTO dto = postService.update(id, request);
+        PostDetailDTO dto = postService.update(id, request, userId);
         return ApiResponse.ok("Cập nhật bài viết thành công!", dto);
     }
 
