@@ -157,11 +157,17 @@ public class GroupServiceImpl implements GroupService {
         List<Post> pageData = hasMore ? posts.subList(0, size) : posts;
         String nextCursor = pageData.isEmpty() ? null : pageData.getLast().getCreatedAt().toString();
 
+        List<Integer> postIds = pageData.stream().map(Post::getId).toList();
+        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty()) 
+                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds) 
+                : List.of();
+
         List<PostSummaryDTO> dtos = pageData.stream()
                 .map(post -> PostMapper.toSummaryDTO(
                         post, 
                         postLikeRepository.countByPostId(post.getId()), 
-                        userGroupRepository.findByUserIdAndGroupId(post.getUser().getId(), post.getGroup().getId()).map(UserGroup::getRole).orElse(null)
+                        userGroupRepository.findByUserIdAndGroupId(post.getUser().getId(), post.getGroup().getId()).map(UserGroup::getRole).orElse(null),
+                        likedPostIds.contains(post.getId())
                 ))
                 .toList();
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);
@@ -189,11 +195,17 @@ public class GroupServiceImpl implements GroupService {
         List<Post> pageData = hasMore ? posts.subList(0, size) : posts;
         String nextCursor = pageData.isEmpty() ? null : pageData.getLast().getCreatedAt().toString();
 
+        List<Integer> postIds = pageData.stream().map(Post::getId).toList();
+        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty()) 
+                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds) 
+                : List.of();
+
         List<PostSummaryDTO> dtos = pageData.stream()
                 .map(post -> PostMapper.toSummaryDTO(
                         post, 
                         postLikeRepository.countByPostId(post.getId()), 
-                        userGroupRepository.findByUserIdAndGroupId(post.getUser().getId(), post.getGroup().getId()).map(UserGroup::getRole).orElse(null)
+                        userGroupRepository.findByUserIdAndGroupId(post.getUser().getId(), post.getGroup().getId()).map(UserGroup::getRole).orElse(null),
+                        likedPostIds.contains(post.getId())
                 ))
                 .toList();
 

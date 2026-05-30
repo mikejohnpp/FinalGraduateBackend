@@ -13,7 +13,7 @@
 
 ### `common` (jar)
 Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Contains:
-- **Entities**: `User`, `Role`, `RoleDetail`, `Post`, `PostLike`, `PostLikeId`, `Comment`, `Message`, `Conversation`, `ConversationUser`, `ConversationUserId`, `Group`, `UserGroup`, `UserGroupId`, `UserFriend`, `UserFriendId`
+- **Entities**: `User`, `Role`, `RoleDetail`, `Post`, `PostLike`, `PostLikeId`, `Comment`, `CommentLike`, `CommentLikeId`, `Message`, `Conversation`, `ConversationUser`, `ConversationUserId`, `Group`, `UserGroup`, `UserGroupId`, `UserFriend`, `UserFriendId`
 - **Soft delete**: Entities `User`, `Role`, `Post`, `Comment`, `Message`, `Conversation`, `Group` all have an `isActive` (`TINYINT(1) DEFAULT 1`) column. Services must query only active records (e.g. `findByIdAndIsActiveTrue`). Deletes set `isActive = false` instead of physically removing rows.
 - **DTOs (root)**: `LoginRequest`, `RegisterRequest`, `ApiResponse`, `JwtAuthResponse`, `CursorPageResponse<T>`, `PageResponse<T>`
   - `CursorPageResponse<T>` — record(`data`, `nextCursor`, `hasMore`); used for infinite scroll / cursor-based pagination
@@ -32,9 +32,13 @@ Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Cont
   - `PostUpdateRequest` — record(`content`); validated request for updating post content
   - `PostLikeRequest` — record(`userId`); validated request for liking/unliking a post
   - `PostMapper` — static utility class; methods: `toPostDTO`, `toSummaryDTO`, `toDetailDTO`
+- **DTOs (comment sub-package)** — `dto/comment/views/`, `dto/comment/mappers/`, `dto/comment/requests/`:
+  - `CommentDTO` — record(`id`, `author`, `postId`, `parentId`, `content`, `likeCount`, `replyCount`, `liked`, `createdAt`); standard response for both comments and replies
+  - `CommentCreateRequest`, `CommentUpdateRequest`, `CommentLikeRequest` — validated request shapes
+  - `CommentMapper` — static utility class; methods: `toCommentDTO`
 - **Events**: `events/PingEvent`, `events/PongEvent` (Kafka transport records, top-level package, **not** under `dto/`)
 - **Kafka kernel** (`kafka/`): `KafkaTopics`, `KafkaHeaders`, `support/EventEnvelope`, `support/EventPublisher`, `config/KafkaCommonProperties`, `config/KafkaErrorHandlingConfig`
-- **Repositories**: `UserRepository`, `RoleRepository`, `CommentRepository`, `PostRepository`, `PostLikeRepository`
+- **Repositories**: `UserRepository`, `RoleRepository`, `CommentRepository`, `CommentLikeRepository`, `PostRepository`, `PostLikeRepository`
 - **Config**: `WebConfig`, `ResponseApi` (legacy — do not use in new code)
 - **Exception handling**:
   - `exceptions/GlobalExceptionHandler.java` — `@RestControllerAdvice`; handles 10 exception types (see below)
@@ -88,8 +92,10 @@ Entrypoint: `UserServiceApplication.java` — annotated with `@EntityScan("org.s
 
 Key source files:
 - `controllers/PostController.java` — `@RequestMapping("/posts")`; full CRUD for posts + like/unlike + search/suggested
+- `controllers/CommentController.java` — `@RequestMapping("/posts/{postId}/comments")`; full CRUD for comments/replies + like/unlike
 - `services/PostService.java` — interface with `create`, `getAll`, `getSuggested`, `getFiltered`, `getById`, `update`, `delete`, `like`, `unlike`
 - `services/impl/PostServiceImpl.java` — post CRUD + like + pagination implementation using `PostRepository`, `PostLikeRepository`, `UserRepository`
+- `services/CommentService.java` & `impl/CommentServiceImpl.java` — logic for comments, nested reply handling, and denormalized count updates
 - `specifications/PostSpecification.java` — JPA Criteria API Specifications for dynamic filtering (`isActive`, `byUserId`, `byIsGroupPosted`, `byGroupId`, `contentContains`)
 - `services/UserService.java` — interface with `getAll()` method
 - `services/impl/UserServiceImpl.java` — queries `UserRepository.findAll()`
@@ -108,6 +114,17 @@ Post REST endpoints (`/posts`, proxied via gateway as `/users/posts`):
 | DELETE | `/posts/{id}` | — | Soft delete a post (`isActive = false`) |
 | POST | `/posts/{id}/like` | — | Like a post; body `{"userId": N}`; returns `201 Created` |
 | DELETE | `/posts/{id}/like` | — | Unlike a post; body `{"userId": N}` |
+
+Comment REST endpoints (`/posts/{postId}/comments`):
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | — | List root comments of a post (cursor-based pagination) |
+| GET | `/{commentId}/replies` | — | List replies of a specific comment (cursor-based pagination, ASC) |
+| POST | `/` | — | Create a new comment or reply (with `parentId`) |
+| PUT | `/{commentId}` | — | Update comment content |
+| DELETE | `/{commentId}` | — | Soft delete a comment (`isActive = false`) and its replies |
+| POST | `/{commentId}/like` | — | Like a comment |
+| DELETE | `/{commentId}/like` | — | Unlike a comment |
 
 ### `chat-service`
 Chat/messaging microservice. Runs on port **9091** (dev profile), **8080** (prod profile). Key deps:
@@ -311,7 +328,7 @@ We use [Hurl](https://hurl.dev/) for end-to-end API testing.
 - **Environment Variables**: Tests must be environment-agnostic. Use `{{host}}` for base URLs, loaded from `/tests/api/vars/dev.env` or `prod.env`.
 - **Authentication**: For protected endpoints, capture the token from a login request at the top of the test file using the `[Captures]` block, and inject it into subsequent requests via the `Authorization: Bearer {{token}}` header.
 - **Execution**: Run tests using the helper script `tests/api/run-all.sh`.
-- **Current test files**: `posts.hurl` (Post CRUD tests).
+- **Current test files**: `posts.hurl` (Post CRUD tests), `comments.hurl` (Comment CRUD and like tests).
 
 ## Kafka conventions
 

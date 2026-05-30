@@ -42,4 +42,20 @@ public class Comment {
     private Boolean isActive;
 
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Comment parent;
+
+    @ColumnDefault("0")
+    @Column(name = "like_count")
+    private Integer likeCount;
+
+    @ColumnDefault("0")
+    @Column(name = "reply_count")
+    private Integer replyCount;
+
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
 }
