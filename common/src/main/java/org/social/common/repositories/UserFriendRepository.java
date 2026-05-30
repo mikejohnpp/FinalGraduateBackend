@@ -20,6 +20,8 @@ public interface UserFriendRepository extends JpaRepository<UserFriend, UserFrie
 
     boolean existsByIdUserIdAndIdFriendIdAndStatus(Integer userId, Integer friendId, FriendStatus status);
 
+    int countByIdUserIdAndStatus(Integer userId, FriendStatus status);
+
     @Query("SELECT uf FROM UserFriend uf JOIN FETCH uf.user WHERE uf.id.friendId = :userId AND uf.status = 'PENDING' AND uf.createdAt < :cursor ORDER BY uf.createdAt DESC")
     List<UserFriend> findPendingRequestsBefore(Integer userId, Instant cursor, Pageable pageable);
 

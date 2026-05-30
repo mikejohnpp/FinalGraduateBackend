@@ -5,7 +5,7 @@ import org.social.common.entities.User;
 
 public class UserMapper {
 
-    public static UserProfileDTO mapUserToProfile(User user) {
+    public static UserProfileDTO mapUserToProfile(User user, int friendCount) {
         return new UserProfileDTO(
                 user.getId(),
                 user.getUserName(),
@@ -15,7 +15,18 @@ public class UserMapper {
                 user.getPhoneNumber(),
                 user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null,
                 user.getRole() != null ? user.getRole().getName() : null,
-                user.getIsActive()
+                user.getIsActive(),
+                user.getCoverPhoto(),
+                friendCount,
+                user.getBio(),
+                user.getLocation(),
+                user.getEducation(),
+                user.getWorkplace(),
+                user.getHometown(),
+                user.getRelationship(),
+                user.getGender(),
+                user.getPronouns(),
+                user.getLanguage()
         );
     }
 }
