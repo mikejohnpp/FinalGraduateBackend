@@ -70,13 +70,19 @@ public class PostServiceImpl implements PostService {
         }
 
         Post savedPost = postRepository.save(post);
-        return PostMapper.toPostDTO(savedPost, getAuthorRole(savedPost));
+        return PostMapper.toPostDTO(savedPost, getAuthorRole(savedPost), false);
     }
 
     @Override
-    public List<PostSummaryDTO> getAll() {
-        return postRepository.findAllWithUser().stream()
-                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post)))
+    public List<PostSummaryDTO> getAll(Integer userId) {
+        List<Post> posts = postRepository.findAllWithUser();
+        List<Integer> postIds = posts.stream().map(Post::getId).toList();
+        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty()) 
+                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds) 
+                : List.of();
+
+        return posts.stream()
+                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post), likedPostIds.contains(post.getId())))
                 .toList();
     }
 
@@ -91,31 +97,38 @@ public class PostServiceImpl implements PostService {
 
         String nextCursor = pageData.isEmpty() ? null : pageData.getLast().getCreatedAt().toString();
 
+        List<Integer> postIds = pageData.stream().map(Post::getId).toList();
+        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty()) 
+                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds) 
+                : List.of();
+
         List<PostSummaryDTO> dtos = pageData.stream()
-                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post)))
+                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post), likedPostIds.contains(post.getId())))
                 .toList();
 
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);
     }
 
     @Override
-    public PostDetailDTO getById(Integer id) {
+    public PostDetailDTO getById(Integer id, Integer userId) {
         Post post = postRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bài viết", id));
         long likeCount = postLikeRepository.countByPostId(id);
-        return PostMapper.toDetailDTO(post, likeCount, getAuthorRole(post));
+        boolean hasLiked = userId != null && postLikeRepository.existsByUserIdAndPostId(userId, id);
+        return PostMapper.toDetailDTO(post, likeCount, getAuthorRole(post), hasLiked);
     }
 
     @Override
     @Transactional
-    public PostDetailDTO update(Integer id, PostUpdateRequest request) {
+    public PostDetailDTO update(Integer id, PostUpdateRequest request, Integer userId) {
         Post post = postRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bài viết", id));
 
         post.setContent(request.content());
         Post savedPost = postRepository.save(post);
         long likeCount = postLikeRepository.countByPostId(id);
-        return PostMapper.toDetailDTO(savedPost, likeCount, getAuthorRole(savedPost));
+        boolean hasLiked = userId != null && postLikeRepository.existsByUserIdAndPostId(userId, id);
+        return PostMapper.toDetailDTO(savedPost, likeCount, getAuthorRole(savedPost), hasLiked);
     }
 
     @Override
@@ -170,8 +183,13 @@ public class PostServiceImpl implements PostService {
 
         Page<Post> postPage = postRepository.findAll(spec, pageable);
 
+        List<Integer> postIds = postPage.getContent().stream().map(Post::getId).toList();
+        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty()) 
+                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds) 
+                : List.of();
+
         List<PostSummaryDTO> dtos = postPage.getContent().stream()
-                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post)))
+                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post), likedPostIds.contains(post.getId())))
                 .toList();
 
         return new PageResponse<>(

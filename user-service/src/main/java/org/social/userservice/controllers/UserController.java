@@ -7,6 +7,10 @@ import org.social.userservice.services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.social.common.dto.user.request.ProfileUpdateRequest;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.multipart.MultipartFile;
+
 @RestController
 @RequiredArgsConstructor
 public class UserController {
@@ -19,5 +23,29 @@ public class UserController {
             @RequestHeader("X-User-Email") String requestingEmail) {
         UserProfileDTO dto = userService.getUserProfile(id, requestingEmail);
         return ApiResponse.ok("Lấy thông tin người dùng thành công", dto);
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<UserProfileDTO>> updateProfile(
+            @RequestParam long userId,
+            @Validated @RequestBody ProfileUpdateRequest request) {
+        UserProfileDTO dto = userService.updateProfile(userId, request);
+        return ApiResponse.ok("Cập nhật thông tin thành công!", dto);
+    }
+
+    @PostMapping("/profile/avatar")
+    public ResponseEntity<ApiResponse<String>> uploadAvatar(
+            @RequestParam long userId,
+            @RequestParam("file") MultipartFile file) {
+        String url = userService.uploadAvatar(userId, file);
+        return ApiResponse.ok("Cập nhật ảnh đại diện thành công!", url);
+    }
+
+    @PostMapping("/profile/cover")
+    public ResponseEntity<ApiResponse<String>> uploadCover(
+            @RequestParam long userId,
+            @RequestParam("file") MultipartFile file) {
+        String url = userService.uploadCover(userId, file);
+        return ApiResponse.ok("Cập nhật ảnh bìa thành công!", url);
     }
 }

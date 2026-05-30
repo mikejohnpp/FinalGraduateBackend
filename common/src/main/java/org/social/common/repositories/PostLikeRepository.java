@@ -15,4 +15,10 @@ public interface PostLikeRepository extends JpaRepository<PostLike, PostLikeId> 
     void deleteByUserIdAndPostId(Integer userId, Integer postId);
 
     void deleteByPostId(Integer postId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT pl.postId FROM PostLike pl WHERE pl.userId = :userId AND pl.postId IN :postIds")
+    java.util.List<Integer> findPostIdsByUserIdAndPostIdIn(
+        @org.springframework.data.repository.query.Param("userId") Integer userId, 
+        @org.springframework.data.repository.query.Param("postIds") java.util.List<Integer> postIds
+    );
 }

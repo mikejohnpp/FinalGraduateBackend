@@ -49,4 +49,12 @@ public class Post {
     @ColumnDefault("1")
     @Column(name = "is_active")
     private Boolean isActive;
+
+    @ColumnDefault("0")
+    @Column(name = "comment_count")
+    private Integer commentCount;
+
+    @ColumnDefault("0")
+    @Column(name = "like_count")
+    private Integer likeCount;
 }

@@ -14,5 +14,6 @@ public record PostSummaryDTO(
         Instant createdAt,
         int commentCount,
         String content,
-        long likeCount
+        long likeCount,
+        Boolean hasLiked
 ) {}

@@ -9,5 +9,16 @@ public record UserProfileDTO(
         Integer phoneNumber,
         String dateOfBirth,
         String role,
-        Boolean isActive
+        Boolean isActive,
+        String coverPhoto,
+        Integer friendCount,
+        String bio,
+        String location,
+        String education,
+        String workplace,
+        String hometown,
+        String relationship,
+        String gender,
+        String pronouns,
+        String language
 ) {}
