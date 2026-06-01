@@ -1,9 +1,73 @@
 import torch
+import sys
 import torch.nn as nn
 from transformers import BertModel
 from huggingface_hub import snapshot_download
 from transformers import BertTokenizer
 from pathlib import Path
+from confluent_kafka import Consumer, KafkaException, KafkaError
+import json
+
+running = True
+MIN_COMMIT_COUNT = 10
+
+conf = {'bootstrap.servers': '100.106.249.45:31835',
+        'group.id': 'ai-service-group',
+        'enable.auto.commit': 'false',
+        'auto.offset.reset': 'earliest'}
+
+consumer = Consumer(conf)
+
+def process_message(msg):
+    value_bytes = msg.value()
+    if not value_bytes:
+        return
+    try:
+        raw_json = value_bytes.decode('utf-8')
+        envelope = json.loads(raw_json)
+
+        event_type = envelope.get('eventType')
+        payload = envelope.get('payload', {})
+        
+        if event_type == "PingEvent":
+            print(f"[{event_type}] from: {payload.get('from')} - msg: {payload.get('message')} (sentAt: {payload.get('sentAt')})")
+        else:
+            print(f"[{event_type}] {payload}")
+    except json.JSONDecodeError as e:
+        print(f"JSON Decode Error: {e}")
+    except Exception as e:
+        print(f"Error processing message: {e}")
+
+def consume_loop(consumer, topics):
+    try:
+        consumer.subscribe(topics)
+
+        msg_count = 0
+        while running:
+            msg = consumer.poll(timeout=1.0)
+            if msg is None: continue
+
+            if msg.error():
+                if msg.error().code() == KafkaError._PARTITION_EOF:
+                    # End of partition event
+                    sys.stderr.write('%% %s [%d] reached end at offset %d\n' %
+                                     (msg.topic(), msg.partition(), msg.offset()))
+                elif msg.error():
+                    raise KafkaException(msg.error())
+            else:
+                process_message(msg)
+                msg_count += 1
+                if msg_count % MIN_COMMIT_COUNT == 0:
+                    consumer.commit(asynchronous=False)
+    finally:
+        # Close down consumer to commit final offsets.
+        consumer.close()
+
+def shutdown():
+    running = False
+
+
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 class HTCModel(nn.Module):
     def __init__(self, num_labels, K=100, d=768, dropout=0.1):
@@ -70,7 +134,6 @@ if not model_dir.exists():
     )
 
 def main():
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     # Xác định thiết bị là CPU
     device = "cpu"
     model_path = "my_model/best_model.pt"
@@ -80,61 +143,65 @@ def main():
 
     # Load weights với map_location để ép dữ liệu về CPU
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-    sentences = [
-        "Fans want the team to win the championship",
-        "Customers want the company to stop ignoring their complaints",
-        "The manager beat his employee for making a mistake",
-        "The boy beat the drum"
-    ]
 
-    subjs = [
-        "Fans",
-        "Customers",
-        "The manager",
-        "The boy"
-    ]
+    consume_loop(consumer=consumer, topics=["demo.ping"])
 
-    preds = [
-        "want",
-        "want",
-        "beat",
-        "beat"
-    ]
-
-    objs = [
-        "the team to win the championship",
-        "the company to stop ignoring their complaints",
-        "his employee",
-        "the drum"
-    ]
-
-    id2label = {
-        0: "negative",
-        1: "neutral",
-        2: "positive"
-    }
-
-    model.eval()
-
-    with torch.no_grad():
-
-        batch = {
-            "subj": tokenizer(subjs, return_tensors="pt", padding=True, truncation=True),
-            "pred": tokenizer(preds, return_tensors="pt", padding=True, truncation=True),
-            "obj": tokenizer(objs, return_tensors="pt", padding=True, truncation=True),
-            "sent": tokenizer(sentences, return_tensors="pt", padding=True, truncation=True),
-        }
-
-        # đưa lên GPU
-        for k in batch:
-            batch[k] = {x: batch[k][x].to(device) for x in batch[k]}
-
-        logits, _, _, _ = model(batch)
-
-        preds = torch.argmax(logits, dim=-1).cpu().tolist()
-
-        for sent, p in zip(sentences, preds):
-            print(f"{sent} → {id2label[p]}")
+    
+    # sentences = [
+    #     "Fans want the team to win the championship",
+    #     "Customers want the company to stop ignoring their complaints",
+    #     "The manager beat his employee for making a mistake",
+    #     "The boy beat the drum"
+    # ]
+    #
+    # subjs = [
+    #     "Fans",
+    #     "Customers",
+    #     "The manager",
+    #     "The boy"
+    # ]
+    #
+    # preds = [
+    #     "want",
+    #     "want",
+    #     "beat",
+    #     "beat"
+    # ]
+    #
+    # objs = [
+    #     "the team to win the championship",
+    #     "the company to stop ignoring their complaints",
+    #     "his employee",
+    #     "the drum"
+    # ]
+    #
+    # id2label = {
+    #     0: "negative",
+    #     1: "neutral",
+    #     2: "positive"
+    # }
+    #
+    # model.eval()
+    #
+    # with torch.no_grad():
+    #
+    #     batch = {
+    #         "subj": tokenizer(subjs, return_tensors="pt", padding=True, truncation=True),
+    #         "pred": tokenizer(preds, return_tensors="pt", padding=True, truncation=True),
+    #         "obj": tokenizer(objs, return_tensors="pt", padding=True, truncation=True),
+    #         "sent": tokenizer(sentences, return_tensors="pt", padding=True, truncation=True),
+    #     }
+    #
+    #     # đưa lên GPU
+    #     for k in batch:
+    #         batch[k] = {x: batch[k][x].to(device) for x in batch[k]}
+    #
+    #     logits, _, _, _ = model(batch)
+    #
+    #     preds = torch.argmax(logits, dim=-1).cpu().tolist()
+    #
+    #     for sent, p in zip(sentences, preds):
+    #         print(f"{sent} → {id2label[p]}")
 
 if __name__ == "__main__":
     main()
