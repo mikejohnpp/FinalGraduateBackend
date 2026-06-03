@@ -27,7 +27,7 @@ public class KafkaCommonProperties {
     public static class Topics {
         private String demoPing = "demo.ping";
         private String demoPong = "demo.pong";
-        private String aiAnalyzeRequest = "ai.analyze.request";
+        private String aiAnalyzeRequest = "post.analyze";
 
         public String getDemoPing() { return demoPing; }
         public void setDemoPing(String v) { this.demoPing = v; }

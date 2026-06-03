@@ -26,8 +26,8 @@ public class PingPublisher {
     public void sendAnalyzeRequest(AnalyzeSentimentEvent event) {
         publisher.publish(
                 properties.getTopics().getAiAnalyzeRequest(),
-                "ai-service",
-                "AnalyzeSentimentEvent",
+                "preprocessor-service",
+                "postAnalyze",
                 event
         );
     }
