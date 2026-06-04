@@ -1,5 +1,6 @@
 package org.social.authservice.controllers;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
@@ -61,45 +62,80 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/validate-token")
+    @GetMapping("/validate-token")
     public ResponseEntity<ApiResponse<Object>> validateToken(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
-//        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-//            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Không tìm thấy token hoặc định dạng sai.");
-//        }
-//
-//        String token = authHeader.substring(7);
-//
-//        try {
-//            String email = jwtService.extractEmail(token);
-//
-//            UserDetails userDetails = userService.loadUserByUsername(email);
-//
-//            if (!jwtService.validateToken(token, userDetails)) {
-//                return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Token không khớp với User.");
-//            }
-//
-//            String role = jwtService.extractClaim(token, claims -> claims.get("roles", String.class));
-//
-//            Map<String, String> userData = Map.of(
-//                    "email", email,
-//                    "role", role != null ? role : ""
-//            );
-//
-//            return ApiResponse.ok("Token hợp lệ.", userData);
-//
-//        } catch (ExpiredJwtException e) {
-//            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Token đã hết hạn. Vui lòng đăng nhập lại.");
-//        } catch (UsernameNotFoundException e) {
-//            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Người dùng không tồn tại.");
-//        } catch (JwtException | IllegalArgumentException e) {
-//            return ApiResponse.error(HttpStatus.UNAUTHORIZED, "Token không hợp lệ.");
-//        }
+        System.out.println("========== VALIDATE TOKEN ==========");
+        System.out.println("AUTH HEADER = " + authHeader);
 
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ApiResponse.error(
+                    HttpStatus.UNAUTHORIZED,
+                    "Không tìm thấy token hoặc định dạng sai."
+            );
+        }
 
-        // Ví jwtAuthFilter đều chạy qua mỗi request, nên nếu vào được tới đây thì token đó là hợp lệ.
-        // Chỗ này muốn lấy ra hay trả về gì thì lấy nhé
-        return ApiResponse.ok("Token hợp lệ.");
+        String token = authHeader.substring(7);
+
+        try {
+
+            Claims claims = jwtService.extractClaim(token, c -> c);
+
+            System.out.println("ALL CLAIMS = " + claims);
+
+            Object userIdObj = claims.get("userId");
+            Object roleObj = claims.get("roles");
+
+            System.out.println("userId claim = " + userIdObj);
+            System.out.println("userId type = " +
+                    (userIdObj != null ? userIdObj.getClass().getName() : "null"));
+
+            System.out.println("roles claim = " + roleObj);
+
+            String email = jwtService.extractEmail(token);
+
+            UserDetails userDetails = userService.loadUserByUsername(email);
+
+            if (!jwtService.validateToken(token, userDetails)) {
+                return ApiResponse.error(
+                        HttpStatus.UNAUTHORIZED,
+                        "Token không khớp với User."
+                );
+            }
+
+            String role = jwtService.extractClaim(
+                    token,
+                    c -> c.get("roles", String.class)
+            );
+
+            Number userIdNumber = jwtService.extractClaim(
+                    token,
+                    c -> c.get("userId", Number.class)
+            );
+
+            System.out.println("Extracted userIdNumber = " + userIdNumber);
+
+            if (userIdNumber == null) {
+                return ApiResponse.error(
+                        HttpStatus.UNAUTHORIZED,
+                        "Token không chứa userId"
+                );
+            }
+
+            int userId = userIdNumber.intValue();
+
+            Map<String, String> userData = Map.of(
+                    "email", email,
+                    "role", role != null ? role : "",
+                    "userId", String.valueOf(userId)
+            );
+
+            return ApiResponse.ok("Token hợp lệ.", userData);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 }

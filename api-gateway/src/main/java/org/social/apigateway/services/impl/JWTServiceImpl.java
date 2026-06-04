@@ -41,6 +41,7 @@ public class JWTServiceImpl implements JWTService {
 
         return Jwts.builder()
                 .setSubject(email)
+                .claim("userId",user.getId())
                 .claim("roles", roles)
                 .claim("type", "access")
                 .setIssuedAt(new Date(System.currentTimeMillis()))
@@ -62,6 +63,7 @@ public class JWTServiceImpl implements JWTService {
 
         return Jwts.builder()
                 .setSubject(email)
+                .claim("userId",user.getId())
                 .claim("roles", roles)
                 .claim("type", "refresh")
                 .setIssuedAt(new Date(System.currentTimeMillis()))
