@@ -23,6 +23,9 @@
       enable = true;
       requirements = ./requirements.txt;
     };
+    uv = {
+      enable = true;
+    };
   };
 
   # https://devenv.sh/basics/
