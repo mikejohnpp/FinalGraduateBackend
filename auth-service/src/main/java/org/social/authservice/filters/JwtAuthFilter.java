@@ -40,6 +40,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
+        String path = request.getServletPath();
+
+        if (path.equals("/auth/refresh-token")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         if (!StringUtils.hasText(authHeader) || !StringUtils.startsWithIgnoreCase(authHeader, "Bearer ")) {
             filterChain.doFilter(request, response);
             return;

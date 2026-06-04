@@ -90,7 +90,7 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "conversation_id")
     )
-    private Set<Conversation> conversations = new LinkedHashSet<>();
+    private Set<Conversation> conversation = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "sender")
     private Set<Message> messages = new LinkedHashSet<>();

@@ -32,8 +32,8 @@ public class Conversation {
     @Column(name = "created_at")
     private Instant createdAt;
 
-    @ManyToMany
-    private Set<User> users = new LinkedHashSet<>();
+    @ManyToMany(mappedBy = "conversation")
+    private Set<User> user = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "conversation")
     private Set<Message> messages = new LinkedHashSet<>();
