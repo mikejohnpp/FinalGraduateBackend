@@ -1,0 +1,30 @@
+[project]
+ name = "srl-service"
+ version = "0.1.0"
+ requires-python = "==3.8.20"
+ dependencies = [
+   "allennlp==2.10.1",
+   "allennlp-models==2.10.1",
+   "lmdb==1.4.1",
+   "torch==1.12.1+cpu",
+   "torchvision==0.13.1+cpu",
+   "typing-extensions==4.5.0",
+   "pydantic==1.8.2",
+   "fastapi==0.99.1",
+   "starlette==0.27.0",
+   "uvicorn[standard]<0.30"
+ ]
+
+[dependency-groups]
+ dev = [
+   "pytest",
+ ]
+
+ [[tool.uv.index]]
+ name = "pytorch-cpu"
+ url = "https://download.pytorch.org/whl/cpu"
+ explicit = true
+
+ [tool.uv.sources]
+ torch = { index = "pytorch-cpu" }
+ torchvision = { index = "pytorch-cpu" }
