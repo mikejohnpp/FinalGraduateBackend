@@ -1,0 +1,22 @@
+[project]
+name = "preprocessor-service"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = "==3.12.12"
+dependencies = [
+    "beautifulsoup4==4.14.3",
+    "confluent-kafka==2.13.2",
+    "contractions==0.1.73",
+    "stanza==1.12.1",
+    "tweet-preprocessor==0.6.0",
+    "requests==2.28.1",
+    "torch"
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
