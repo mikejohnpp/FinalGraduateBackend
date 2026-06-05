@@ -31,11 +31,10 @@ class HtcSentimentAnalyzer(BaseAnalyzer):
 
     def _download_model(self):
         model_dir = Path(config.MODEL_DIR)
-        if not model_dir.exists():
-            snapshot_download(
-                repo_id=config.MODEL_REPO_ID,
-                local_dir=str(model_dir)
-            )
+        snapshot_download(
+            repo_id=config.MODEL_REPO_ID,
+            local_dir=str(model_dir)
+        )
 
     def predict(self, payload: dict):
         sentence = payload.get('sentence', '')
