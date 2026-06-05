@@ -1,5 +1,7 @@
+import ai.bertntn_sentence_sentiment_analyzer
+import ai.htc_sentiment_analyzer
 import config
-from ai.inference import SentimentAnalyzer
+from ai.model_factory import ModelFactory
 from kafka_layer.consumer import KafkaConsumer
 from kafka_layer.handlers import MessageHandler
 from kafka_layer.producer import KafkaProducer
@@ -8,8 +10,8 @@ from kafka_layer.producer import KafkaProducer
 def main():
     print("Initializing AI Service...")
     
-    # Khởi tạo model (commented out prediction code per user request)
-    analyzer = SentimentAnalyzer(device="cpu")
+    # Khởi tạo model từ Factory
+    analyzer = ModelFactory.get_analyzer(config.MODEL_TYPE, device=config.DEVICE)
     print("Model initialized successfully.")
 
     # Khởi tạo Producer
