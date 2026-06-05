@@ -1,7 +1,9 @@
-from ai.inference import SentimentAnalyzer
-from kafka_layer.handlers import MessageHandler
-from kafka_layer.consumer import KafkaConsumer
 import config
+from ai.inference import SentimentAnalyzer
+from kafka_layer.consumer import KafkaConsumer
+from kafka_layer.handlers import MessageHandler
+from kafka_layer.producer import KafkaProducer
+
 
 def main():
     print("Initializing AI Service...")
@@ -11,8 +13,8 @@ def main():
     print("Model initialized successfully.")
 
     # Khởi tạo Producer
-    # producer = KafkaProducer()
-    producer = None
+    producer = KafkaProducer()
+    print("Kafka Producer initialized.")
 
     # Khởi tạo Kafka Message Handler
     handler = MessageHandler(analyzer=analyzer, producer=producer)
@@ -21,6 +23,7 @@ def main():
     consumer = KafkaConsumer(message_handler=handler, producer=producer)
     
     try:
+        print("Starting consumer loop...")
         consumer.start(topics=config.KAFKA_TOPICS)
     except KeyboardInterrupt:
         print("Shutting down...")

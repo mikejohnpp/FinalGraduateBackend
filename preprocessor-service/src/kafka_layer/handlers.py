@@ -1,6 +1,10 @@
 import json
+
+import requests
+
 import config
-from processor.pipeline import preprocess_pipeline, lemma_string
+from processor.pipeline import lemma_string, preprocess_pipeline
+
 
 class MessageHandler:
     def __init__(self, nlp_client=None, producer=None):
@@ -17,6 +21,13 @@ class MessageHandler:
         # 2. Lemmatization bằng Stanza
         lemmatized = lemma_string(self.nlp_client, cleaned)
         return lemmatized
+    
+    def srl_sentence(self, raw_text):
+        if not raw_text:
+            return ""
+        data = { "sentence": raw_text }
+        response = requests.post(config.SRL_API_URL, json=data)
+        return response.json()
 
     def handle(self, msg):
         value_bytes = msg.value()
@@ -48,24 +59,36 @@ class MessageHandler:
                     )
             elif event_type == "postAnalyze":
                 sentence = payload.get('sentence', '')
-                post_id = payload.get('postId', 'unknown')
+                post_id = payload.get('postId', '')
                 
                 print(f"[{event_type}] Received request for preprocessor: '{sentence}'")
                 
                 if self.nlp_client:
                     processed_sentence = self._process_text(sentence)
-                    
                     print(f"==> Processed sentence: {processed_sentence} (for postId: {post_id})")
+                    srl_processed = self.srl_sentence(processed_sentence)
+                    print(f"==> SRL processed result: {srl_processed} (for post ID: {post_id})")
 
+                    first = srl_processed["result"][0]
+
+                    subj = first.get('ARG0', '')
+                    pred = first.get('V', '')
+                    obj = first.get('ARG1', '')
+
+                    print(f"subj = {subj}, pred = {pred}, obj = {obj}")
                     if self.producer:
                         result_payload = {
                             "sentence": processed_sentence,
+                            "subject": subj,
+                            "predicate": pred,
+                            "object": obj,
+                            "postId": post_id
                         }
-                        
-                        print(f"Sending processed result to {config.KAFKA_OUTPUT_TOPIC}")
+
+                        print(f"Sending processed result to {config.KAFKA_OUTPUT_TOPIC} with payload: {result_payload}")
                         self.producer.send_event(
                             topic=config.KAFKA_OUTPUT_TOPIC,
-                            event_type="AnalyzeSentimentEvent",
+                            event_type="postAnalyzeSentiment",
                             payload=result_payload
                         )
                 else:
