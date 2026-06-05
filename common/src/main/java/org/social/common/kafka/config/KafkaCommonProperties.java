@@ -27,11 +27,14 @@ public class KafkaCommonProperties {
     public static class Topics {
         private String demoPing = "demo.ping";
         private String demoPong = "demo.pong";
+        private String aiAnalyzeRequest = "dev.post.analyze.preprocessor";
 
         public String getDemoPing() { return demoPing; }
         public void setDemoPing(String v) { this.demoPing = v; }
         public String getDemoPong() { return demoPong; }
         public void setDemoPong(String v) { this.demoPong = v; }
+        public String getAiAnalyzeRequest() { return aiAnalyzeRequest; }
+        public void setAiAnalyzeRequest(String v) { this.aiAnalyzeRequest = v; }
     }
 
     public static class Retry {

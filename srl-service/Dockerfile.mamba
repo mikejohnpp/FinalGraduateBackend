@@ -1,0 +1,23 @@
+FROM mambaorg/micromamba:1.5.10
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+   patch patchelf build-essential \
+   && rm -rf /var/lib/apt/lists/*
+USER $MAMBA_USER
+
+WORKDIR /workspace
+
+RUN micromamba create -y -n py38 -c conda-forge python=3.8 pip && \
+   micromamba clean --all --yes
+
+RUN micromamba run -n py38 pip install --no-cache-dir "pip<25" "setuptools<76" wheel
+RUN micromamba run -n py38 pip install --no-cache-dir \
+   --extra-index-url https://download.pytorch.org/whl/cpu \
+   "torch==1.12.1+cpu" "torchvision==0.13.1+cpu"
+RUN micromamba run -n py38 pip install --no-cache-dir \
+   "lmdb==1.4.1" "allennlp==2.10.1" "allennlp-models==2.10.1"
+
+RUN find /opt/conda/envs/py38/lib/python3.8/site-packages/torch/lib \
+   -name "*.so*" -exec patchelf --clear-execstack {} \; || true
+

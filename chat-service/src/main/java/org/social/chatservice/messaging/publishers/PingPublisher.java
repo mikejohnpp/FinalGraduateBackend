@@ -2,6 +2,7 @@ package org.social.chatservice.messaging.publishers;
 
 import lombok.RequiredArgsConstructor;
 import org.social.common.events.PingEvent;
+import org.social.common.events.AnalyzeSentimentEvent;
 import org.social.common.kafka.config.KafkaCommonProperties;
 import org.social.common.kafka.support.EventPublisher;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,15 @@ public class PingPublisher {
                 properties.getTopics().getDemoPing(),
                 event.from(),
                 "demo.ping",
+                event
+        );
+    }
+
+    public void sendAnalyzeRequest(AnalyzeSentimentEvent event) {
+        publisher.publish(
+                properties.getTopics().getAiAnalyzeRequest(),
+                "preprocessor-service",
+                "postAnalyze",
                 event
         );
     }
