@@ -47,12 +47,13 @@ class MessageHandler:
                 print(f"[{event_type}] Received request for: '{payload}'")
 
                 if self.analyzer:
-                    result = self.analyzer.predict(sentence, subj, pred, obj)
-                    print(f"==> AI Result: {result}")
+                    result, confidence = self.analyzer.predict(sentence, subj, pred, obj)
+                    print(f"==> AI Result: {result} (Confidence: {confidence:.4f})")
                     if self.producer:
                         response_payload = {
                             "postId": post_id,
-                            "sentiment": result
+                            "sentiment": result,
+                            "confidence": confidence
                         }
                         print(f"Sending analysis result for Post ID {post_id} to topic: {config.KAFKA_OUTPUT_TOPIC}")
                         self.producer.send_event(

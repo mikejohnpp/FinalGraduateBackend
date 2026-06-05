@@ -2,6 +2,7 @@ import torch
 from pathlib import Path
 from huggingface_hub import snapshot_download
 from transformers import BertTokenizer
+import torch.nn.functional as F
 from ai.htc_model import HTCModel
 import config
 
@@ -42,6 +43,8 @@ class SentimentAnalyzer:
                 batch[k] = {x: batch[k][x].to(self.device) for x in batch[k]}
 
             logits, _, _, _ = self.model(batch)
+            probs = F.softmax(logits, dim=-1)
+            confidence = torch.max(probs, dim=-1)[0].cpu().item()
             preds_idx = torch.argmax(logits, dim=-1).cpu().tolist()
 
-            return self.id2label[preds_idx[0]]
+            return self.id2label[preds_idx[0]], confidence
