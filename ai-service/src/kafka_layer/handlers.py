@@ -37,17 +37,13 @@ class MessageHandler:
                         payload=pong_payload
                     )
             elif event_type == "postAnalyzeSentiment":
-                sentence = payload.get('sentence', '')
-                subj = payload.get('subject', '')
-                pred = payload.get('predicate', '')
-                obj = payload.get('object', '')
                 post_id = payload.get('postId', '')
 
 
                 print(f"[{event_type}] Received request for: '{payload}'")
 
                 if self.analyzer:
-                    result, confidence = self.analyzer.predict(sentence, subj, pred, obj)
+                    result, confidence = self.analyzer.predict(payload)
                     print(f"==> AI Result: {result} (Confidence: {confidence:.4f})")
                     if self.producer:
                         response_payload = {

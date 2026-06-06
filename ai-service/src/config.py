@@ -7,6 +7,12 @@ KAFKA_OUTPUT_TOPIC = os.getenv("KAFKA_OUTPUT_TOPIC", "dev.post.analyze.result")
 
 MODEL_REPO_ID = os.getenv("MODEL_REPO_ID", "MikeJohnP/HTC_ImplicitSentiment")
 MODEL_DIR = os.getenv("MODEL_DIR", "my_model")
-MODEL_WEIGHTS_PATH = os.getenv("MODEL_WEIGHTS_PATH", "my_model/best_model.pt")
+MODEL_HTC_PATH = os.getenv("MODEL_HTC_PATH", f"{MODEL_DIR}/htc/model.pt")
+MODEL_BERTNTN_SENTENCE_PATH = os.getenv("MODEL_BERTNTN_SENTENCE_PATH", f"{MODEL_DIR}/bertntn_sentence/model.pt")
 
 MIN_COMMIT_COUNT = int(os.getenv("MIN_COMMIT_COUNT", "1"))
+
+MODEL_TYPE = os.getenv("MODEL_TYPE", "htc")
+DEVICE = os.getenv("DEVICE", "cpu")
+
+MAX_LEN = int(os.getenv("MAX_LEN", 40))

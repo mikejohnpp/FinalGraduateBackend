@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  srl-service:
+    build:
+      context: ./srl-service
+      dockerfile: Dockerfile.uv 
+    container_name: srl-service
+    ports:
+      - "9096:8080"
+    environment:
+      - PORT=8080
+      - HOST=0.0.0.0
+      - ALLENNLP_CACHE_ROOT=/app/model_cache
+      - CUDA_DEVICE=-1
+    volumes:
+      - srl_model_cache:/app/model_cache
+    restart: unless-stopped
+
+  preprocessor-service:
+    build:
+      context: ./preprocessor-service
+      dockerfile: Dockerfile
+    container_name: preprocessor-service
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-100.106.249.45:31835}
+      - KAFKA_GROUP_ID=preprocessor-service-group
+      - KAFKA_TOPICS=dev.post.analyze.preprocessor
+      - KAFKA_OUTPUT_TOPIC=dev.post.analyze.sentiment
+      - CORENLP_DIR=/app/corenlp
+      - SRL_API_URL=http://srl-service:8080/predict
+    volumes:
+      - preprocessor_corenlp_cache:/app/corenlp
+    depends_on:
+      - srl-service
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: ai-service
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-100.106.249.45:31835}
+      - KAFKA_GROUP_ID=ai-service-group
+      - KAFKA_TOPICS=dev.post.analyze.sentiment
+      - KAFKA_OUTPUT_TOPIC=dev.post.analyze.result
+      - MODEL_DIR=/app/my_model
+      - HF_HOME=/app/my_model/huggingface_cache
+      - DEVICE=cpu
+      - MODEL_TYPE=htc
+    volumes:
+      - ai_model_cache:/app/my_model
+    depends_on:
+      - preprocessor-service
+    restart: unless-stopped
+
+volumes:
+  srl_model_cache:
+  preprocessor_corenlp_cache:
+  ai_model_cache:
