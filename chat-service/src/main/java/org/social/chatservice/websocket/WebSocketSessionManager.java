@@ -37,6 +37,10 @@ public class WebSocketSessionManager {
             }
         }
     }
+    public Set<Integer> getOnlineUsers() {
+        return Set.copyOf(userSessions.keySet());
+    }
+
     public Set<String> getSessions(Long userId) {
         return userSessions.getOrDefault(userId, Set.of());
     }

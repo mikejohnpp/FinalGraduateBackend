@@ -3,6 +3,7 @@ package org.social.chatservice.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.social.chatservice.services.MessageService;
+import org.social.common.dto.conversation.mappers.UserResponseMapper;
 import org.social.common.dto.conversation.requests.ChatMessageRequest;
 import org.social.common.dto.conversation.response.ChatMessageResponse;
 import org.social.common.entities.Conversation;
@@ -22,6 +23,7 @@ public class MessageServiceImpl implements MessageService {
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
+    private final UserResponseMapper userResponseMapper;
 
     @Override
     public ChatMessageResponse saveMessage(ChatMessageRequest chatMessage) {
@@ -50,7 +52,7 @@ public class MessageServiceImpl implements MessageService {
                 saved.getId(),
                 saved.getContent(),
                 saved.getCreatedAt(),
-                sender.getId(),
+                userResponseMapper.toDTO(sender),
                 conversation.getId()
         );
 

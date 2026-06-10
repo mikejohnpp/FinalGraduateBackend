@@ -3,6 +3,7 @@ package org.social.chatservice.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.social.chatservice.services.ConversationService;
+import org.social.chatservice.websocket.WebSocketSessionManager;
 import org.social.common.dto.ApiResponse;
 import org.social.common.dto.conversation.requests.CreateConversationRequest;
 import org.social.common.dto.conversation.response.ConversationResponse;
@@ -10,6 +11,8 @@ import org.social.common.dto.conversation.response.ConversationResponseDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 @RestController
@@ -18,7 +21,7 @@ import java.util.Set;
 public class ConversationController {
 
     private final ConversationService conversationService;
-
+    private final WebSocketSessionManager sessionManager;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ConversationResponse>> createConversation(@RequestBody CreateConversationRequest request){
@@ -56,5 +59,15 @@ public class ConversationController {
                         size
                 )
         );
+    }
+    @GetMapping("/online")
+    public ResponseEntity<ApiResponse<List<Integer>>> getUserOnline() {
+
+        List<Integer> onlineUsers = new ArrayList<>(
+                sessionManager.getOnlineUsers()
+        );
+        System.out.println("user online nef mayas bes"+onlineUsers);
+        return ApiResponse.ok("Lấy được danh sách userOnline",onlineUsers);
+
     }
 }

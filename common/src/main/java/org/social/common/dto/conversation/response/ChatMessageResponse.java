@@ -13,6 +13,6 @@ public class ChatMessageResponse {
     private int id;
     private String content;
     private Instant createdAt;
-    private int senderId;
+    private UserResponse user;
     private int conversationId;
 }

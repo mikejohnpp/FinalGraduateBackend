@@ -14,6 +14,6 @@ public class MessageResponse {
     private int conversationId;
     private String content;
     private Instant createdAt;
-    private int senderId;
+    private UserResponse user;
     private boolean isActive;
 }
