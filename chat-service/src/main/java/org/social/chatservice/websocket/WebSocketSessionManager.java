@@ -42,10 +42,10 @@ public class WebSocketSessionManager {
     }
 
     public Set<String> getSessions(Long userId) {
-        return userSessions.getOrDefault(userId, Set.of());
+        return userSessions.getOrDefault(userId.intValue(), Set.of());
     }
     public boolean isOnline(Long userId) {
-        Set<String> sessions = userSessions.get(userId);
+        Set<String> sessions = userSessions.get(userId.intValue());
         return sessions != null && !sessions.isEmpty();
     }
 }
