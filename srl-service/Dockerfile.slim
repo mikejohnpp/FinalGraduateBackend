@@ -1,0 +1,31 @@
+FROM python:3.8-slim-bullseye
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+   PYTHONUNBUFFERED=1 \
+   PIP_NO_CACHE_DIR=1 \
+   PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /workspace
+
+# Cần cho build một số package native + fix execstack torch
+RUN apt-get update && apt-get install -y --no-install-recommends \
+   build-essential \
+   gcc \
+   g++ \
+   patch \
+   patchelf \
+   && rm -rf /var/lib/apt/lists/*
+
+# Cài dependencies trước để tận dụng cache layer
+COPY requirements.txt /workspace/requirements.txt
+
+RUN pip install --upgrade "pip<25" "setuptools<76" wheel && \
+   pip install --extra-index-url https://download.pytorch.org/whl/cpu \
+     torch==1.12.1+cpu \
+     torchvision==0.13.1+cpu && \
+   pip install -r /workspace/requirements.txt
+
+# Fix lỗi libtorch_cpu.so executable stack (nếu môi trường chặn)
+RUN find /usr/local/lib/python3.8/site-packages/torch/lib \
+   -name "*.so*" -exec patchelf --clear-execstack {} \; || true
+

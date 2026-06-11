@@ -1,6 +1,7 @@
 package org.social.common.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,6 +22,10 @@ public class UserGroup {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_id", nullable = false)
     private Group group;
+
+    @Size(max = 20)
+    @Column(name = "role", length = 20)
+    private String role;
 
 
 }

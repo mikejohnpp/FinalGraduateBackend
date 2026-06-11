@@ -17,10 +17,20 @@ jobs:
     needs: detect
     strategy:
       matrix:
-        module: ${{ fromJson(needs.detect.outputs.modules) }}
-
+        include: ${{ fromJson(needs.detect.outputs.modules) }}
     uses: ./.github/workflows/build-module.yml
     secrets:
       GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
     with:
       module: ${{ matrix.module }}
+      dockerfile: ${{ matrix.dockerfile }}
+      context: ${{ matrix.context }}
+
+  gitops-update:
+    needs: [detect, build]
+    uses: ./.github/workflows/gitops-update.yml
+    secrets:
+      GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
+    with:
+      modules: ${{ needs.detect.outputs.modules }}
+      sha: ${{ github.sha }}

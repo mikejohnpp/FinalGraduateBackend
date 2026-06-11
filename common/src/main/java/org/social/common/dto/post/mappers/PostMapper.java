@@ -1,45 +1,68 @@
 package org.social.common.dto.post.mappers;
 
-import org.social.common.dto.post.views.PostSummaryDTO;
-import org.social.common.entities.Post;
-import org.social.common.entities.PostDetail;
-import org.social.common.dto.post.views.PostDTO;
+import org.social.common.dto.group.mappers.GroupMapper;
 import org.social.common.dto.post.views.PostDetailDTO;
-
-import java.util.List;
+import org.social.common.dto.post.views.PostDTO;
+import org.social.common.dto.post.views.PostSummaryDTO;
+import org.social.common.dto.user.views.AuthorDTO;
+import org.social.common.entities.Post;
+import org.social.common.entities.User;
 
 public class PostMapper {
 
-    public static PostDTO toPostDTO(Post post) {
+    private static AuthorDTO toAuthorDTO(User user) {
+        if (user == null) return null;
+        return new AuthorDTO(
+                user.getId(),
+                user.getUserName(),
+                user.getAvatar(),
+                user.getNickName()
+        );
+    }
+
+    public static PostDTO toPostDTO(Post post, String authorRole, boolean hasLiked) {
         return new PostDTO(
                 post.getId(),
-                post.getUser().getUserName(),
+                toAuthorDTO(post.getUser()),
+                authorRole,
                 post.getIsGroupPosted(),
-                post.getCreatedAt()
+                GroupMapper.toSummaryDTO(post.getGroup()),
+                post.getCreatedAt(),
+                post.getContent(),
+                0L,
+                hasLiked
         );
     }
 
-    public static PostSummaryDTO toSummaryDTO(Post post) {
-        int commentCount = post.getComments() != null ? post.getComments().size() : 0;
+    public static PostSummaryDTO toSummaryDTO(Post post, long likeCount, String authorRole, boolean hasLiked) {
+        int commentCount = post.getCommentCount() != null ? post.getCommentCount() : 0;
+        long currentLikeCount = post.getLikeCount() != null ? post.getLikeCount() : likeCount;
         return new PostSummaryDTO(
                 post.getId(),
-                post.getUser().getUserName(),
+                toAuthorDTO(post.getUser()),
+                authorRole,
                 post.getIsGroupPosted(),
+                GroupMapper.toSummaryDTO(post.getGroup()),
                 post.getCreatedAt(),
-                commentCount
+                commentCount,
+                post.getContent(),
+                currentLikeCount,
+                hasLiked
         );
     }
 
-    public static PostDetailDTO toDetailDTO(Post post, List<PostDetail> details) {
-        List<String> contents = details.stream()
-                .map(PostDetail::getContent)
-                .toList();
+    public static PostDetailDTO toDetailDTO(Post post, long likeCount, String authorRole, boolean hasLiked) {
+        long currentLikeCount = post.getLikeCount() != null ? post.getLikeCount() : likeCount;
         return new PostDetailDTO(
                 post.getId(),
-                post.getUser().getUserName(),
+                toAuthorDTO(post.getUser()),
+                authorRole,
                 post.getIsGroupPosted(),
+                GroupMapper.toSummaryDTO(post.getGroup()),
                 post.getCreatedAt(),
-                contents
+                post.getContent(),
+                currentLikeCount,
+                hasLiked
         );
     }
 }

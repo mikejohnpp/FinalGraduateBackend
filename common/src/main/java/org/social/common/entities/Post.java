@@ -2,6 +2,7 @@ package org.social.common.entities;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
@@ -19,6 +20,11 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
+
+    @NotNull
+    @Size(max = 500)
+    @Column(name = "content", nullable = false, length = 500)
+    private String content;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -40,8 +46,15 @@ public class Post {
     @OneToMany(mappedBy = "post")
     private Set<Comment> comments = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "post")
-    private Set<PostDetail> postDetails = new LinkedHashSet<>();
+    @ColumnDefault("1")
+    @Column(name = "is_active")
+    private Boolean isActive;
 
+    @ColumnDefault("0")
+    @Column(name = "comment_count")
+    private Integer commentCount;
 
+    @ColumnDefault("0")
+    @Column(name = "like_count")
+    private Integer likeCount;
 }

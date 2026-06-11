@@ -1,12 +1,18 @@
 package org.social.common.dto.post.views;
 
+import org.social.common.dto.group.views.GroupSummaryDTO;
+import org.social.common.dto.user.views.AuthorDTO;
+
 import java.time.Instant;
-import java.util.List;
 
 public record PostDetailDTO(
         Integer id,
-        String authorName,
+        AuthorDTO author,
+        String authorRole,
         Boolean isGroupPosted,
+        GroupSummaryDTO group,
         Instant createdAt,
-        List<String> contents
+        String content,
+        long likeCount,
+        Boolean hasLiked
 ) {}

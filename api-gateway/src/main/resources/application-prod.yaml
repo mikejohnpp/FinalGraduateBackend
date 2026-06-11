@@ -7,7 +7,7 @@ spring:
   application:
     name: api-gateway
   datasource:
-    url: jdbc:mysql://100.106.249.45:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+    url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
     username: root
     password: ""
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -21,7 +21,7 @@ spring:
     host: smtp.gmail.com
     port: 587
     username: ltphat240103@gmail.com
-    password: hjiv mfbn ddsw ksbt
+    password: wgziqnpzhasstjgb
     properties:
       mail:
         smtp:

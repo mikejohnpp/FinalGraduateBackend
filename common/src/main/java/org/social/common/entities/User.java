@@ -90,7 +90,7 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "conversation_id")
     )
-    private Set<Conversation> conversations = new LinkedHashSet<>();
+    private Set<Conversation> conversation = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "sender")
     private Set<Message> messages = new LinkedHashSet<>();
@@ -100,4 +100,44 @@ public class User {
 
     @Column(name = "active")
     private Boolean active;
+
+    @Size(max = 500)
+    @Column(name = "cover_photo", length = 500)
+    private String coverPhoto;
+
+    @Size(max = 101)
+    @Column(name = "bio", length = 101)
+    private String bio;
+
+    @Size(max = 100)
+    @Column(name = "location", length = 100)
+    private String location;
+
+    @Size(max = 200)
+    @Column(name = "education", length = 200)
+    private String education;
+
+    @Size(max = 200)
+    @Column(name = "workplace", length = 200)
+    private String workplace;
+
+    @Size(max = 100)
+    @Column(name = "hometown", length = 100)
+    private String hometown;
+
+    @Size(max = 50)
+    @Column(name = "relationship", length = 50)
+    private String relationship;
+
+    @Size(max = 20)
+    @Column(name = "gender", length = 20)
+    private String gender;
+
+    @Size(max = 50)
+    @Column(name = "pronouns", length = 50)
+    private String pronouns;
+
+    @Size(max = 50)
+    @Column(name = "language", length = 50)
+    private String language;
 }

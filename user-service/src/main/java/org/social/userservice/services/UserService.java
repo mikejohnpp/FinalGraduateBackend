@@ -1,13 +1,12 @@
 package org.social.userservice.services;
 
-import org.social.common.dto.user.views.UserDTO;
-import org.social.common.dto.user.views.UserNoAuthenticateDTO;
-import org.social.common.dto.user.views.UserWithAuthenticateDTO;
-
-import java.util.List;
+import org.social.common.dto.user.request.ProfileUpdateRequest;
+import org.social.common.dto.user.views.UserProfileDTO;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
-    List<UserDTO> getAll();
-    UserWithAuthenticateDTO getUserWithAuthenticate(long id);
-    List<UserWithAuthenticateDTO> getListUserWithAuthenticate();
+    UserProfileDTO getUserProfile(long id, String requestingEmail);
+    UserProfileDTO updateProfile(long id, ProfileUpdateRequest request);
+    String uploadAvatar(long id, MultipartFile file);
+    String uploadCover(long id, MultipartFile file);
 }

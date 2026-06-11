@@ -16,7 +16,7 @@ public class EmailServiceImpl implements EmailService {
     @Async
     @Override
     public void guiEmailKichHoat(String toEmail, String maKichHoat) {
-        String linkKichHoat = "http://localhost:5173/kich-hoat/" + maKichHoat;
+        String linkKichHoat = "http://localhost:3000/kich-hoat/" + maKichHoat;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);

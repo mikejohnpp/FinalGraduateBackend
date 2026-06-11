@@ -5,13 +5,23 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(String email);
+    boolean existsByUserName(String userName);
 
-    java.util.Optional<User> findByActiveCode(String activeCode);
+    Optional<User> findByActiveCode(String activeCode);
 
     @EntityGraph(attributePaths = "role")
-    java.util.Optional<User> findByEmail(String email);
+    Optional<User> findByEmail(String email);
+
+    @EntityGraph(attributePaths = "role")
+    Optional<User> findByIdAndIsActiveTrue(Long id);
+
+    @EntityGraph(attributePaths = "role")
+    Optional<User> findByEmailAndIsActiveTrue(String email);
 }
+
