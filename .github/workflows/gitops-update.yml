@@ -31,7 +31,7 @@ jobs:
           git clone https://github.com/mikejohnpp/FinalGraduateProjectConfig.git gitops
           cd gitops
 
-          echo '${{ inputs.modules }}' | jq -r '.[]' | while read module; do
+          echo '${{ inputs.modules }}' | jq -r '.[].module' | while read module; do
             sed -i "s|image: ghcr.io/${{ github.repository_owner }}/${module}:.*|image: ghcr.io/${{ github.repository_owner }}/${module}:${{ inputs.sha }}|g" "${module}-app/deployment.yaml"
             git add "${module}-app/deployment.yaml"
           done

@@ -9,6 +9,14 @@ on:
       module:
         required: true
         type: string
+      dockerfile:
+        required: false
+        type: string
+        default: 'build.dockerfile'
+      context:
+        required: false
+        type: string
+        default: '.'
 
 jobs:
   build:
@@ -26,12 +34,12 @@ jobs:
       - name: Build Docker
         run: |
           IMAGE=ghcr.io/${{ github.repository_owner }}/${{ inputs.module }}:${{ github.sha }}
-          
+
           docker build \
             --build-arg MODULE=${{ inputs.module }} \
-            -f build.dockerfile \
+            -f ${{ inputs.dockerfile }} \
             -t $IMAGE \
-            .
+            ${{ inputs.context }}
 
       - name: Push Docker
         run: |

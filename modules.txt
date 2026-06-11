@@ -3,3 +3,6 @@ api-gateway
 chat-service
 notification-service
 auth-service
+ai-service
+preprocessor-service
+srl-service
