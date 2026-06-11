@@ -1,0 +1,10 @@
+{
+  "user-service":         { "dockerfile": "build.dockerfile",                   "context": "." },
+  "api-gateway":          { "dockerfile": "build.dockerfile",                   "context": "." },
+  "chat-service":         { "dockerfile": "build.dockerfile",                   "context": "." },
+  "notification-service": { "dockerfile": "build.dockerfile",                   "context": "." },
+  "auth-service":         { "dockerfile": "build.dockerfile",                   "context": "." },
+  "ai-service":           { "dockerfile": "ai-service/Dockerfile",              "context": "ai-service" },
+  "preprocessor-service": { "dockerfile": "preprocessor-service/Dockerfile",    "context": "preprocessor-service" },
+  "srl-service":          { "dockerfile": "srl-service/Dockerfile",             "context": "srl-service" }
+}

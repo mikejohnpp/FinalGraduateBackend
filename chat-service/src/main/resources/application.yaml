@@ -5,7 +5,7 @@ spring:
   application:
     name: chat-service
   datasource:
-    url: jdbc:mysql://100.106.249.45:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+    url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
     username: root
     password: ""
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -16,7 +16,7 @@ spring:
           physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
       show-sql: true
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP:100.106.249.45:31835}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:100.120.5.8:31835}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
