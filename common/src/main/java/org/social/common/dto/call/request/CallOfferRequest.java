@@ -6,5 +6,6 @@ public record CallOfferRequest(
         Long fromUserId,
         Long toUserId,
         String sdpOffer,
-        CallType callType
+        CallType callType,
+        Integer conversationId
 ) {}
