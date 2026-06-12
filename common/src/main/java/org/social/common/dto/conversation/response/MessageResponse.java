@@ -3,6 +3,7 @@ package org.social.common.dto.conversation.response;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.social.common.entities.MessageType;
 
 import java.time.Instant;
 
@@ -14,6 +15,8 @@ public class MessageResponse {
     private int conversationId;
     private String content;
     private Instant createdAt;
-    private int senderId;
+    private UserResponse user;
     private boolean isActive;
+    private MessageType messageType;
+    private Integer callDuration;
 }

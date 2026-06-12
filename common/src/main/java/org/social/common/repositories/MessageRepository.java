@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Integer> {
 
-    Page<Message> findByConversationId(
+    Page<Message> findByConversationIdAndIsActiveTrue(
             Integer conversationId,
             Pageable pageable
     );

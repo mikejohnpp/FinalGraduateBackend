@@ -194,7 +194,7 @@ public class ConversationServiceImpl implements ConversationService {
 
         @Override
         public ConversationResponseDetail getConversationDetail(int conversationId, int page, int size) {
-                Conversation conversation = conversationRepository.findById(conversationId)
+                Conversation conversation = conversationRepository.findByIdAndIsActiveTrue(conversationId)
                                 .orElseThrow(() -> new BusinessException(
                                                 "Không tìm thấy conversation"));
 
@@ -203,7 +203,7 @@ public class ConversationServiceImpl implements ConversationService {
                                 page,
                                 size,
                                 sort);
-                Page<Message> messagePage = messageRepository.findByConversationId(
+                Page<Message> messagePage = messageRepository.findByConversationIdAndIsActiveTrue(
                                 conversationId,
                                 pageable);
 
@@ -215,7 +215,6 @@ public class ConversationServiceImpl implements ConversationService {
                                 .stream()
                                 .map(userResponseMapper::toDTO)
                                 .collect(Collectors.toSet());
-
                 return new ConversationResponseDetail(
                                 conversation.getId(),
                                 conversation.getName(),

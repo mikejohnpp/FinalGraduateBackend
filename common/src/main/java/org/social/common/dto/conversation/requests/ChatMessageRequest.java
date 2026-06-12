@@ -4,6 +4,7 @@ package org.social.common.dto.conversation.requests;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.social.common.entities.MessageType;
 
 import java.time.Instant;
 
@@ -17,4 +18,5 @@ public class ChatMessageRequest {
     private Instant createdAt;
     private Integer senderId;
     private Boolean isActive;
+    private MessageType messageType;
 }
