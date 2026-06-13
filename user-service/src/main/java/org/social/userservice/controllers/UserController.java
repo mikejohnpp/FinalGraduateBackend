@@ -2,6 +2,7 @@ package org.social.userservice.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.social.common.dto.ApiResponse;
+import org.social.common.dto.search.SearchResultDTO;
 import org.social.common.dto.user.views.UserProfileDTO;
 import org.social.userservice.services.UserService;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<SearchResultDTO>> search(@RequestParam(defaultValue = "") String q) {
+        SearchResultDTO result = userService.search(q);
+        return ApiResponse.ok("Tìm kiếm thành công", result);
+    }
 
     @GetMapping("/{id}/profile")
     public ResponseEntity<ApiResponse<UserProfileDTO>> getProfile(
@@ -49,3 +56,4 @@ public class UserController {
         return ApiResponse.ok("Cập nhật ảnh bìa thành công!", url);
     }
 }
+
