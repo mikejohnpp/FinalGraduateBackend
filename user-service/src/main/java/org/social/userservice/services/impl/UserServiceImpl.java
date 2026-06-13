@@ -1,17 +1,21 @@
 package org.social.userservice.services.impl;
 
+import org.social.common.dto.search.SearchResultDTO;
 import org.social.common.dto.user.mappers.UserMapper;
 import org.social.common.dto.user.request.ProfileUpdateRequest;
 import org.social.common.dto.user.views.UserProfileDTO;
 import org.social.common.entities.FriendStatus;
+import org.social.common.entities.Group;
 import org.social.common.entities.User;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
+import org.social.common.repositories.GroupRepository;
 import org.social.common.repositories.UserFriendRepository;
 import org.social.common.repositories.UserRepository;
 import org.social.userservice.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -31,6 +36,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserFriendRepository userFriendRepository;
+
+    @Autowired
+    private GroupRepository groupRepository;
 
     @Override
     public UserProfileDTO getUserProfile(long id, String requestingEmail) {
@@ -119,6 +127,24 @@ public class UserServiceImpl implements UserService {
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Lỗi khi upload file");
         }
+    }
+    @Override
+    public SearchResultDTO search(String q) {
+        String query = (q == null || q.isBlank()) ? "" : q.trim();
+        PageRequest limit = PageRequest.of(0, 8);
+
+        List<User> users = userRepository.findByIsActiveTrueAndUserNameContainingIgnoreCase(query, limit);
+        List<Group> groups = groupRepository.findByIsActiveTrueAndNameContainingIgnoreCase(query, limit);
+
+        List<SearchResultDTO.UserSearchDTO> userDTOs = users.stream()
+                .map(u -> new SearchResultDTO.UserSearchDTO(u.getId().longValue(), u.getUserName(), u.getNickName(), u.getAvatar()))
+                .toList();
+
+        List<SearchResultDTO.GroupSearchDTO> groupDTOs = groups.stream()
+                .map(g -> new SearchResultDTO.GroupSearchDTO(g.getId(), g.getName(), g.getAvatar(), 0))
+                .toList();
+
+        return new SearchResultDTO(userDTOs, groupDTOs);
     }
 }
 
