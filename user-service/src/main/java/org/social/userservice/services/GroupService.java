@@ -5,6 +5,9 @@ import org.social.common.dto.group.requests.GroupCreateRequest;
 import org.social.common.dto.group.views.GroupDTO;
 import org.social.common.dto.group.views.GroupMemberDTO;
 import org.social.common.dto.post.views.PostSummaryDTO;
+import org.social.common.dto.admin.GroupAdminDTO;
+import org.social.common.dto.admin.requests.AdminGroupUpdateRequest;
+import org.social.common.dto.PageResponse;
 
 import java.util.List;
 
@@ -18,4 +21,10 @@ public interface GroupService {
     List<GroupMemberDTO> getMembers(Integer groupId);
     CursorPageResponse<PostSummaryDTO> getGroupFeed(Integer userId, String cursor, int size);
     CursorPageResponse<PostSummaryDTO> getGroupPosts(Integer groupId, Integer userId, String cursor, int size);
+
+    // Admin methods
+    PageResponse<GroupAdminDTO> getAllGroups(int page, int size, String search);
+    GroupAdminDTO createGroupAdmin(org.social.common.dto.admin.requests.AdminGroupCreateRequest request);
+    GroupAdminDTO updateGroupAdmin(Integer id, AdminGroupUpdateRequest request);
+    void deleteGroupAdmin(Integer id);
 }

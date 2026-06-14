@@ -8,11 +8,16 @@ import org.social.common.dto.group.views.GroupDTO;
 import org.social.common.dto.group.views.GroupMemberDTO;
 import org.social.common.dto.post.mappers.PostMapper;
 import org.social.common.dto.post.views.PostSummaryDTO;
+import org.social.common.dto.admin.GroupAdminDTO;
+import org.social.common.dto.admin.requests.AdminGroupUpdateRequest;
+import org.social.common.dto.PageResponse;
 import org.social.common.entities.*;
 import org.social.common.exceptions.ResourceNotFoundException;
 import org.social.common.repositories.*;
 import org.social.userservice.services.GroupService;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -210,5 +215,127 @@ public class GroupServiceImpl implements GroupService {
                 .toList();
 
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);
+    }
+
+    // --- Admin Methods ---
+
+    @Override
+    public PageResponse<GroupAdminDTO> getAllGroups(int page, int size, String search) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Group> groupPage;
+
+        if (search != null && !search.trim().isEmpty()) {
+            groupPage = groupRepository.findAll((root, query, cb) ->
+                    cb.like(cb.lower(root.get("name")), "%" + search.toLowerCase() + "%"), pageable);
+        } else {
+            groupPage = groupRepository.findAll(pageable);
+        }
+
+        List<GroupAdminDTO> dtoList = groupPage.getContent().stream().map(g -> {
+            GroupAdminDTO dto = new GroupAdminDTO();
+            dto.setId(g.getId());
+            dto.setName(g.getName());
+            dto.setPrivacy(g.getPrivacy());
+            dto.setIsActive(g.getIsActive());
+            if (g.getAdmin() != null) {
+                dto.setAdminId(g.getAdmin().getId());
+                dto.setAdminName(g.getAdmin().getUserName());
+            }
+            return dto;
+        }).toList();
+
+        return new PageResponse<>(dtoList, groupPage.getNumber(), groupPage.getSize(),
+                groupPage.getTotalElements(), groupPage.getTotalPages(),
+                groupPage.hasNext(), groupPage.hasPrevious());
+    }
+
+    @Override
+    @Transactional
+    public GroupAdminDTO createGroupAdmin(org.social.common.dto.admin.requests.AdminGroupCreateRequest request) {
+        User admin = userRepository.findById(Long.valueOf(request.getAdminId()))
+                .orElseThrow(() -> new ResourceNotFoundException("User", request.getAdminId()));
+
+        Group group = new Group();
+        group.setName(request.getName());
+        group.setPrivacy(request.getPrivacy() != null ? request.getPrivacy() : "public");
+        group.setAdmin(admin);
+        group.setIsActive(true);
+        Group savedGroup = groupRepository.save(group);
+
+        UserGroup membership = new UserGroup();
+        UserGroupId userGroupId = new UserGroupId();
+        userGroupId.setUserId(request.getAdminId());
+        userGroupId.setGroupId(savedGroup.getId());
+        membership.setId(userGroupId);
+        membership.setUser(admin);
+        membership.setGroup(savedGroup);
+        membership.setRole("ADMIN");
+        userGroupRepository.save(membership);
+
+        GroupAdminDTO dto = new GroupAdminDTO();
+        dto.setId(savedGroup.getId());
+        dto.setName(savedGroup.getName());
+        dto.setPrivacy(savedGroup.getPrivacy());
+        dto.setIsActive(savedGroup.getIsActive());
+        dto.setAdminId(Long.valueOf(admin.getId()).intValue());
+        dto.setAdminName(admin.getUserName());
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public GroupAdminDTO updateGroupAdmin(Integer id, AdminGroupUpdateRequest request) {
+        Group group = groupRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Group", id));
+
+        group.setName(request.getName());
+        if (request.getPrivacy() != null) {
+            group.setPrivacy(request.getPrivacy());
+        }
+        if (request.getIsActive() != null) {
+            group.setIsActive(request.getIsActive());
+        }
+
+        if (request.getAdminId() != null && (group.getAdmin() == null || !group.getAdmin().getId().equals(Long.valueOf(request.getAdminId())))) {
+            User newAdmin = userRepository.findById(Long.valueOf(request.getAdminId()))
+                    .orElseThrow(() -> new ResourceNotFoundException("User", request.getAdminId()));
+            group.setAdmin(newAdmin);
+
+            UserGroup membership = userGroupRepository.findByUserIdAndGroupId(request.getAdminId(), group.getId())
+                .orElseGet(() -> {
+                    UserGroup ug = new UserGroup();
+                    UserGroupId userGroupId = new UserGroupId();
+                    userGroupId.setUserId(request.getAdminId());
+                    userGroupId.setGroupId(group.getId());
+                    ug.setId(userGroupId);
+                    ug.setUser(newAdmin);
+                    ug.setGroup(group);
+                    return ug;
+                });
+            membership.setRole("ADMIN");
+            userGroupRepository.save(membership);
+        }
+
+        Group saved = groupRepository.save(group);
+
+        GroupAdminDTO dto = new GroupAdminDTO();
+        dto.setId(saved.getId());
+        dto.setName(saved.getName());
+        dto.setPrivacy(saved.getPrivacy());
+        dto.setIsActive(saved.getIsActive());
+        if (saved.getAdmin() != null) {
+            dto.setAdminId(saved.getAdmin().getId());
+            dto.setAdminName(saved.getAdmin().getUserName());
+        }
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public void deleteGroupAdmin(Integer id) {
+        Group group = groupRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Group", id));
+        group.setIsActive(false);
+        groupRepository.save(group);
     }
 }
