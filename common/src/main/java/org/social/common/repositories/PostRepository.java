@@ -18,13 +18,13 @@ import java.util.Optional;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Integer>, JpaSpecificationExecutor<Post> {
 
-    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true")
+    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL)")
     List<Post> findAllWithUser();
 
-    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND p.createdAt < :cursor ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL) AND p.createdAt < :cursor ORDER BY p.createdAt DESC")
     List<Post> findActivePostsBefore(@Param("cursor") Instant cursor, Pageable pageable);
 
-    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND p.group.id IN :groupIds AND p.createdAt < :cursor ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL) AND p.group.id IN :groupIds AND p.createdAt < :cursor ORDER BY p.createdAt DESC")
     List<Post> findActivePostsByGroupIdsBefore(@Param("groupIds") List<Integer> groupIds, @Param("cursor") Instant cursor, Pageable pageable);
 
     @Override
@@ -34,4 +34,15 @@ public interface PostRepository extends JpaRepository<Post, Integer>, JpaSpecifi
     List<Post> findByUser_IdAndIsActiveTrue(Integer userId);
 
     Optional<Post> findByIdAndIsActiveTrue(Integer id);
+
+    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.group.id = :groupId AND p.status = :status AND p.isActive = true ORDER BY p.createdAt DESC")
+    Page<Post> findByGroupIdAndStatusAndIsActiveTrue(@Param("groupId") Integer groupId, @Param("status") String status, Pageable pageable);
+
+    long countByGroupIdAndStatusAndIsActiveTrue(Integer groupId, String status);
+
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.group.id = :groupId AND p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL) AND p.createdAt >= :since")
+    long countByGroupIdAndCreatedAtAfter(@Param("groupId") Integer groupId, @Param("since") Instant since);
+
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.group.id = :groupId AND p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL) AND p.createdAt >= :start AND p.createdAt < :end")
+    long countByGroupIdAndCreatedAtBetween(@Param("groupId") Integer groupId, @Param("start") Instant start, @Param("end") Instant end);
 }

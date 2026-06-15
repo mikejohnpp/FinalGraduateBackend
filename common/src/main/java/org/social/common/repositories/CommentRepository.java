@@ -20,4 +20,8 @@ public interface CommentRepository extends JpaRepository<Comment, Integer> {
     Optional<Comment> findByIdAndIsActiveTrue(Integer id);
 
     List<Comment> findAllByParentIdAndIsActiveTrue(Integer parentId);
+
+    @Query("SELECT COUNT(c) FROM Comment c WHERE c.post.group.id = :groupId AND c.isActive = true AND c.createdAt >= :since")
+    long countByGroupIdAndCreatedAtAfter(@org.springframework.data.repository.query.Param("groupId") Integer groupId,
+                                         @org.springframework.data.repository.query.Param("since") Instant since);
 }
