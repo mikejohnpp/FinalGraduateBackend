@@ -60,16 +60,38 @@ class MessageHandler:
             elif event_type == "postAnalyze":
                 sentence = payload.get('sentence', '')
                 post_id = payload.get('postId', '')
+                entity_type = payload.get('entityType', 'POST')
+                entity_id = payload.get('entityId', post_id)
                 
-                print(f"[{event_type}] Received request for preprocessor: '{sentence}'")
+                print(f"[{event_type}] Received request for preprocessor: '{sentence}' (entityType={entity_type}, entityId={entity_id})")
                 
                 if self.nlp_client:
                     processed_sentence = self._process_text(sentence)
-                    print(f"==> Processed sentence: {processed_sentence} (for postId: {post_id})")
+                    print(f"==> Processed sentence: {processed_sentence} (entityId: {entity_id})")
                     srl_processed = self.srl_sentence(processed_sentence)
-                    print(f"==> SRL processed result: {srl_processed} (for post ID: {post_id})")
+                    print(f"==> SRL processed result: {srl_processed} (entityId: {entity_id})")
 
-                    first = srl_processed["result"][0]
+                    srl_results = srl_processed.get("result", [])
+
+                    if not srl_results:
+                        print(f"==> SRL returned empty result for entityId={entity_id}, sending postAnalyzeCancelled")
+                        if self.producer:
+                            cancel_payload = {
+                                "postId": post_id,
+                                "entityType": entity_type,
+                                "entityId": entity_id,
+                                "sentiment": None,
+                                "confidence": None,
+                                "cancelReason": "SRL_EMPTY_RESULT"
+                            }
+                            self.producer.send_event(
+                                topic=config.KAFKA_RESULT_TOPIC,
+                                event_type="postAnalyzeCancelled",
+                                payload=cancel_payload
+                            )
+                        return
+
+                    first = srl_results[0]
 
                     subj = first.get('ARG0', '')
                     pred = first.get('V', '')
@@ -82,7 +104,9 @@ class MessageHandler:
                             "subject": subj,
                             "predicate": pred,
                             "object": obj,
-                            "postId": post_id
+                            "postId": post_id,
+                            "entityType": entity_type,
+                            "entityId": entity_id
                         }
 
                         print(f"Sending processed result to {config.KAFKA_OUTPUT_TOPIC} with payload: {result_payload}")

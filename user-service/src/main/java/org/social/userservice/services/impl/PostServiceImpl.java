@@ -10,9 +10,13 @@ import org.social.common.dto.post.views.PostDTO;
 import org.social.common.dto.post.views.PostDetailDTO;
 import org.social.common.dto.post.views.PostSummaryDTO;
 import org.social.common.entities.*;
+import org.social.common.events.AnalyzeSentimentEvent;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
+import org.social.common.kafka.KafkaTopics;
+import org.social.common.kafka.support.EventEnvelope;
+import org.social.common.kafka.support.EventPublisher;
 import org.social.common.repositories.PostLikeRepository;
 import org.social.common.repositories.PostRepository;
 import org.social.common.repositories.UserGroupRepository;
@@ -37,6 +41,7 @@ public class PostServiceImpl implements PostService {
     private final PostLikeRepository postLikeRepository;
     private final UserRepository userRepository;
     private final UserGroupRepository userGroupRepository;
+    private final EventPublisher userEventPublisher;
 
     private String getAuthorRole(Post post) {
         if (Boolean.TRUE.equals(post.getIsGroupPosted()) && post.getGroup() != null) {
@@ -70,6 +75,14 @@ public class PostServiceImpl implements PostService {
         }
 
         Post savedPost = postRepository.save(post);
+
+        userEventPublisher.publish(
+                KafkaTopics.POST_ANALYZE_PREPROCESSOR,
+                savedPost.getId().toString(),
+                EventEnvelope.of("postAnalyze", "user-service",
+                        new AnalyzeSentimentEvent(savedPost.getContent(), savedPost.getId(), "POST", savedPost.getId()))
+        );
+
         return PostMapper.toPostDTO(savedPost, getAuthorRole(savedPost), false);
     }
 
