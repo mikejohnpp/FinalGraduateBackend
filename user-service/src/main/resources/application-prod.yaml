@@ -43,5 +43,5 @@ spring:
 app:
   kafka:
     topics:
-      demo-ping: demo.ping
-      demo-pong: demo.pong
+      post.analyze.result: post.analyze.result
+      post.analyze.preprocessor: dev.post.analyze.preprocessor

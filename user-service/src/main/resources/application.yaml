@@ -6,6 +6,7 @@ spring:
     name: user-service
   datasource:
     url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+#    url: jdbc:mysql://localhost:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
     username: root
     password: ""
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -43,4 +44,5 @@ spring:
 app:
   kafka:
     topics:
+      post.analyze.preprocessor: dev.post.analyze.preprocessor
       post.analyze.result: dev.post.analyze.result

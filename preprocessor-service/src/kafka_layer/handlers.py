@@ -69,7 +69,25 @@ class MessageHandler:
                     srl_processed = self.srl_sentence(processed_sentence)
                     print(f"==> SRL processed result: {srl_processed} (for post ID: {post_id})")
 
-                    first = srl_processed["result"][0]
+                    srl_results = srl_processed.get("result", [])
+
+                    if not srl_results:
+                        print(f"==> SRL returned empty result for postId={post_id}, sending postAnalyzeCancelled")
+                        if self.producer:
+                            cancel_payload = {
+                                "postId": post_id,
+                                "sentiment": None,
+                                "confidence": None,
+                                "cancelReason": "SRL_EMPTY_RESULT"
+                            }
+                            self.producer.send_event(
+                                topic=config.KAFKA_RESULT_TOPIC,
+                                event_type="postAnalyzeCancelled",
+                                payload=cancel_payload
+                            )
+                        return
+
+                    first = srl_results[0]
 
                     subj = first.get('ARG0', '')
                     pred = first.get('V', '')
