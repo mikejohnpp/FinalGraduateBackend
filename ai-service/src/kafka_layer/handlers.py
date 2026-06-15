@@ -38,7 +38,8 @@ class MessageHandler:
                     )
             elif event_type == "postAnalyzeSentiment":
                 post_id = payload.get('postId', '')
-
+                entity_type = payload.get('entityType', 'POST')
+                entity_id = payload.get('entityId', post_id)
 
                 print(f"[{event_type}] Received request for: '{payload}'")
 
@@ -48,10 +49,12 @@ class MessageHandler:
                     if self.producer:
                         response_payload = {
                             "postId": post_id,
+                            "entityType": entity_type,
+                            "entityId": entity_id,
                             "sentiment": result,
                             "confidence": confidence
                         }
-                        print(f"Sending analysis result for Post ID {post_id} to topic: {config.KAFKA_OUTPUT_TOPIC}")
+                        print(f"Sending analysis result for entityId {entity_id} to topic: {config.KAFKA_OUTPUT_TOPIC}")
                         self.producer.send_event(
                             topic=config.KAFKA_OUTPUT_TOPIC, 
                             event_type="postAnalyzeResult", 

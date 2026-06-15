@@ -12,5 +12,8 @@ public record CommentDTO(
         int likeCount,
         int replyCount,
         boolean liked,
-        Instant createdAt
+        Instant createdAt,
+        String sentiment,
+        Double confidence,
+        String cancelReason
 ) {}

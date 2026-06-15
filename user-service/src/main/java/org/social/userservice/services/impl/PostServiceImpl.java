@@ -80,7 +80,7 @@ public class PostServiceImpl implements PostService {
                 KafkaTopics.POST_ANALYZE_PREPROCESSOR,
                 savedPost.getId().toString(),
                 EventEnvelope.of("postAnalyze", "user-service",
-                        new AnalyzeSentimentEvent(savedPost.getContent(), savedPost.getId()))
+                        new AnalyzeSentimentEvent(savedPost.getContent(), savedPost.getId(), "POST", savedPost.getId()))
         );
 
         return PostMapper.toPostDTO(savedPost, getAuthorRole(savedPost), false);
