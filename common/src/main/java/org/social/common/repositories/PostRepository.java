@@ -25,10 +25,11 @@ public interface PostRepository extends JpaRepository<Post, Integer>, JpaSpecifi
     List<Post> findActivePostsBefore(@Param("cursor") Instant cursor, Pageable pageable);
 
     @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL) AND p.group.id IN :groupIds AND p.createdAt < :cursor ORDER BY p.createdAt DESC")
-    List<Post> findActivePostsByGroupIdsBefore(@Param("groupIds") List<Integer> groupIds, @Param("cursor") Instant cursor, Pageable pageable);
+    List<Post> findActivePostsByGroupIdsBefore(@Param("groupIds") List<Integer> groupIds,
+            @Param("cursor") Instant cursor, Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"user"})
+    @EntityGraph(attributePaths = { "user" })
     Page<Post> findAll(Specification<Post> spec, Pageable pageable);
 
     List<Post> findByUser_IdAndIsActiveTrue(Integer userId);
@@ -36,7 +37,8 @@ public interface PostRepository extends JpaRepository<Post, Integer>, JpaSpecifi
     Optional<Post> findByIdAndIsActiveTrue(Integer id);
 
     @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.group.id = :groupId AND p.status = :status AND p.isActive = true ORDER BY p.createdAt DESC")
-    Page<Post> findByGroupIdAndStatusAndIsActiveTrue(@Param("groupId") Integer groupId, @Param("status") String status, Pageable pageable);
+    Page<Post> findByGroupIdAndStatusAndIsActiveTrue(@Param("groupId") Integer groupId, @Param("status") String status,
+            Pageable pageable);
 
     long countByGroupIdAndStatusAndIsActiveTrue(Integer groupId, String status);
 
@@ -44,5 +46,8 @@ public interface PostRepository extends JpaRepository<Post, Integer>, JpaSpecifi
     long countByGroupIdAndCreatedAtAfter(@Param("groupId") Integer groupId, @Param("since") Instant since);
 
     @Query("SELECT COUNT(p) FROM Post p WHERE p.group.id = :groupId AND p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL) AND p.createdAt >= :start AND p.createdAt < :end")
-    long countByGroupIdAndCreatedAtBetween(@Param("groupId") Integer groupId, @Param("start") Instant start, @Param("end") Instant end);
+    long countByGroupIdAndCreatedAtBetween(@Param("groupId") Integer groupId, @Param("start") Instant start,
+            @Param("end") Instant end);
+
+    long countByIsActiveTrue();
 }
