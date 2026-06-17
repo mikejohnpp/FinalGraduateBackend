@@ -1,15 +1,15 @@
-package org.social.chatservice.feignClient;
+package org.social.apigateway.client;
 
-import org.social.chatservice.dto.TokenValidateResponse;
+import org.social.apigateway.dto.TokenValidateResponse;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 @FeignClient(name = "auth-service", url = "${auth-service.url}")
-public interface UserClient {
+public interface AuthClient {
 
     @GetMapping("/auth/validate-token")
     TokenValidateResponse validateToken(
-            @RequestHeader(org.springframework.http.HttpHeaders.AUTHORIZATION) String authorization);
-
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization);
 }
