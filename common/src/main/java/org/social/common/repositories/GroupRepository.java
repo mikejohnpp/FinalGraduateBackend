@@ -14,4 +14,8 @@ public interface GroupRepository extends JpaRepository<Group, Integer>, JpaSpeci
     Optional<Group> findByIdAndIsActiveTrue(Integer id);
 
     List<Group> findByIsActiveTrueAndNameContainingIgnoreCase(String name, Pageable pageable);
+
+    long count();
+
+    long countByIsActiveTrue();
 }

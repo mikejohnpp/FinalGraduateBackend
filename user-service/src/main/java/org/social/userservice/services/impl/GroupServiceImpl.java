@@ -56,9 +56,11 @@ public class GroupServiceImpl implements GroupService {
         membership.setUser(admin);
         membership.setGroup(savedGroup);
         membership.setRole("ADMIN");
+        membership.setStatus("APPROVED");
+        membership.setRequestedAt(Instant.now());
         userGroupRepository.save(membership);
 
-        return GroupMapper.toDTO(savedGroup, 1, true, "ADMIN");
+        return GroupMapper.toDTO(savedGroup, 1, true, false, "ADMIN");
     }
 
     @Override
@@ -66,13 +68,17 @@ public class GroupServiceImpl implements GroupService {
         Group group = groupRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Group", id));
         
-        long memberCount = userGroupRepository.countByGroupId(id);
+        long memberCount = userGroupRepository.countByGroupIdAndStatus(id, "APPROVED");
         Optional<UserGroup> membership = userGroupRepository.findByUserIdAndGroupId(userId, id);
+        
+        boolean isJoined = membership.map(ug -> "APPROVED".equals(ug.getStatus())).orElse(false);
+        boolean isPending = membership.map(ug -> "PENDING".equals(ug.getStatus())).orElse(false);
         
         return GroupMapper.toDTO(
                 group, 
                 memberCount, 
-                membership.isPresent(), 
+                isJoined, 
+                isPending,
                 membership.map(UserGroup::getRole).orElse(null)
         );
     }
@@ -82,8 +88,10 @@ public class GroupServiceImpl implements GroupService {
         List<UserGroup> memberships = userGroupRepository.findByUserId(userId);
         return memberships.stream()
                 .map(ug -> {
-                    long count = userGroupRepository.countByGroupId(ug.getGroup().getId());
-                    return GroupMapper.toDTO(ug.getGroup(), count, true, ug.getRole());
+                    long count = userGroupRepository.countByGroupIdAndStatus(ug.getGroup().getId(), "APPROVED");
+                    boolean isPending = "PENDING".equals(ug.getStatus());
+                    boolean isJoined = "APPROVED".equals(ug.getStatus());
+                    return GroupMapper.toDTO(ug.getGroup(), count, isJoined, isPending, ug.getRole());
                 })
                 .toList();
     }
@@ -99,23 +107,26 @@ public class GroupServiceImpl implements GroupService {
                 .filter(g -> Boolean.TRUE.equals(g.getIsActive()) && !joinedGroupIds.contains(g.getId()))
                 .limit(10)
                 .map(g -> {
-                    long count = userGroupRepository.countByGroupId(g.getId());
-                    return GroupMapper.toDTO(g, count, false, null);
+                    long count = userGroupRepository.countByGroupIdAndStatus(g.getId(), "APPROVED");
+                    return GroupMapper.toDTO(g, count, false, false, null);
                 })
                 .toList();
     }
 
     @Override
     @Transactional
-    public void join(Integer groupId, Integer userId) {
+    public org.social.common.dto.group.responses.JoinGroupResponse join(Integer groupId, Integer userId) {
         Group group = groupRepository.findByIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group", groupId));
         User user = userRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
-        if (userGroupRepository.existsByUserIdAndGroupId(userId, groupId)) {
-            return;
+        Optional<UserGroup> existingMembership = userGroupRepository.findByUserIdAndGroupId(userId, groupId);
+        if (existingMembership.isPresent()) {
+            return new org.social.common.dto.group.responses.JoinGroupResponse(existingMembership.get().getStatus());
         }
+
+        boolean isPrivate = "PRIVATE".equalsIgnoreCase(group.getPrivacy());
 
         UserGroup membership = new UserGroup();
         UserGroupId userGroupId = new UserGroupId();
@@ -125,7 +136,12 @@ public class GroupServiceImpl implements GroupService {
         membership.setUser(user);
         membership.setGroup(group);
         membership.setRole("MEMBER");
+        String finalStatus = isPrivate ? "PENDING" : "APPROVED";
+        membership.setStatus(finalStatus);
+        membership.setRequestedAt(Instant.now());
         userGroupRepository.save(membership);
+
+        return new org.social.common.dto.group.responses.JoinGroupResponse(finalStatus);
     }
 
     @Override
@@ -270,6 +286,8 @@ public class GroupServiceImpl implements GroupService {
         membership.setUser(admin);
         membership.setGroup(savedGroup);
         membership.setRole("ADMIN");
+        membership.setStatus("APPROVED");
+        membership.setRequestedAt(Instant.now());
         userGroupRepository.save(membership);
 
         GroupAdminDTO dto = new GroupAdminDTO();

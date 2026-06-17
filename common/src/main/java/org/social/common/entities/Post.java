@@ -66,4 +66,8 @@ public class Post {
 
     @Column(name = "cancel_reason")
     private String cancelReason;
+
+    @ColumnDefault("'APPROVED'")
+    @Column(name = "status", length = 20)
+    private String status;
 }

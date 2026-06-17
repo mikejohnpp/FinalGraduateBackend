@@ -16,7 +16,7 @@ public interface GroupService {
     GroupDTO getById(Integer id, Integer userId);
     List<GroupDTO> getJoinedGroups(Integer userId);
     List<GroupDTO> getSuggestedGroups(Integer userId);
-    void join(Integer groupId, Integer userId);
+    org.social.common.dto.group.responses.JoinGroupResponse join(Integer groupId, Integer userId);
     void leave(Integer groupId, Integer userId);
     List<GroupMemberDTO> getMembers(Integer groupId);
     CursorPageResponse<PostSummaryDTO> getGroupFeed(Integer userId, String cursor, int size);

@@ -13,6 +13,7 @@ public record GroupDTO(
         String postFrequency,
         Instant lastAccessed,
         boolean isJoined,
+        boolean isPending,
         String role,
         List<String> mutualFriends,
         long mutualFriendCount

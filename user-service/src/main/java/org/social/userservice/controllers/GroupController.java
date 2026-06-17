@@ -50,11 +50,11 @@ public class GroupController {
     }
 
     @PostMapping("/{id}/join")
-    public ResponseEntity<ApiResponse<Void>> join(
+    public ResponseEntity<ApiResponse<org.social.common.dto.group.responses.JoinGroupResponse>> join(
             @PathVariable Integer id,
             @RequestParam Integer userId) {
-        groupService.join(id, userId);
-        return ApiResponse.ok("Tham gia nhóm thành công!");
+        var response = groupService.join(id, userId);
+        return ApiResponse.ok("Thao tác thành công!", response);
     }
 
     @PostMapping("/{id}/leave")

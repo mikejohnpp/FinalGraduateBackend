@@ -5,7 +5,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -46,7 +48,14 @@ public class Group {
     @OneToMany(mappedBy = "group")
     private Set<UserGroup> userGroups = new LinkedHashSet<>();
 
-    @org.hibernate.annotations.ColumnDefault("1")
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    @Column(name = "created_at")
+    private Instant createdAt;
+
+    @ColumnDefault("1")
     @Column(name = "is_active")
     private Boolean isActive;
 

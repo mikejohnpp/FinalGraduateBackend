@@ -19,7 +19,7 @@ public class GroupMapper {
         );
     }
 
-    public static GroupDTO toDTO(Group group, long memberCount, boolean isJoined, String role) {
+    public static GroupDTO toDTO(Group group, long memberCount, boolean isJoined, boolean isPending, String role) {
         if (group == null) return null;
         return new GroupDTO(
                 group.getId(),
@@ -31,6 +31,7 @@ public class GroupMapper {
                 null, // postFrequency - can be calculated later
                 null, // lastAccessed
                 isJoined,
+                isPending,
                 role,
                 new ArrayList<>(), // mutualFriends
                 0 // mutualFriendCount
