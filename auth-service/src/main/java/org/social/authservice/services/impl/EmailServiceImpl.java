@@ -1,7 +1,7 @@
-package org.social.apigateway.services.impl;
+package org.social.authservice.services.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.social.apigateway.services.EmailService;
+import org.social.authservice.services.EmailService;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
@@ -23,12 +23,11 @@ public class EmailServiceImpl implements EmailService {
         message.setSubject("Kích hoạt tài khoản của bạn");
         message.setText(
                 "Chào bạn,\n\n" +
-                "Cảm ơn bạn đã đăng ký tài khoản.\n" +
-                "Vui lòng nhấn vào đường dẫn bên dưới để kích hoạt tài khoản:\n\n" +
-                linkKichHoat + "\n\n" +
-                "Đường dẫn có hiệu lực trong 24 giờ.\n\n" +
-                "Trân trọng,\nWeb TMĐT Team"
-        );
+                        "Cảm ơn bạn đã đăng ký tài khoản.\n" +
+                        "Vui lòng nhấn vào đường dẫn bên dưới để kích hoạt tài khoản:\n\n" +
+                        linkKichHoat + "\n\n" +
+                        "Đường dẫn có hiệu lực trong 24 giờ.\n\n" +
+                        "Trân trọng,\nWeb TMĐT Team");
         mailSender.send(message);
     }
 }

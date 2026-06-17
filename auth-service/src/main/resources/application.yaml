@@ -3,14 +3,23 @@ server:
     context-path: /
   port: 9093
 
-
 spring:
   application:
     name: auth-service
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ltphat240103@gmail.com
+    password: xzrq hcxb yhka jqnp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls.enable: true
   datasource:
     url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
     username: root
-    password: ""
+    password: ''
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:

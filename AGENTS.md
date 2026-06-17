@@ -71,23 +71,36 @@ Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Cont
 Gateway service. Runs on port **8080** (dev profile). Key deps:
 
 - `spring-cloud-starter-gateway-server-webmvc` (Spring Cloud `2025.1.0`)
-- Proxies `Path=/users/**` to `user-service`, `Path=/chat/**` to `chat-service`
-- Includes SMTP Mail config for notifications.
+- `spring-cloud-starter-openfeign`
+- Proxies `Path=/auth/**` to `auth-service` (no StripPrefix), `Path=/users/**` to `user-service`, `Path=/chat/**` to `chat-service`.
+- **Stateless gateway**: no DB/JPA, no JWT secret, no mail. Authentication is fully delegated to `auth-service`.
+- `filters/JwtAuthFilter.java` — validates every request by calling `auth-service GET /auth/validate-token` via `client/AuthClient` (Feign). On success it injects downstream headers `X-User-Email`, `X-User-Id`, `X-User-Role` (user-service consumes `X-User-Email`). On failure returns 401 JSON.
+- `client/AuthClient.java` — Feign client to `auth-service` (url from `auth-service.url`).
+- `dto/TokenValidateResponse.java` — maps the `ApiResponse` returned by `validate-token`.
+- `security/Endpoints.java` — public auth paths (`/auth/login`, `/auth/register`, `/auth/active`, `/auth/refresh-token`, `/auth/logout`, `/auth/validate-token`); everything else authenticated.
+- Login/register/active/logout endpoints now live in `auth-service`, not the gateway.
 
 ### `auth-service`
 
-Authentication service. Runs on port **9093** (dev profile). Key deps:
+Authentication service. Runs on port **9093** (dev profile). It is the **single source of truth for authentication** — login, register, activation, refresh, logout, and token validation all live here. Key deps:
 
-- `spring-boot-starter-security`, `spring-boot-starter-validation`
+- `spring-boot-starter-security`, `spring-boot-starter-validation`, `spring-boot-starter-mail`
 - **JWT**: `io.jsonwebtoken` (jjwt) version **0.13.0**
-  Entrypoint: `AuthServiceApplication.java`
+  Entrypoint: `AuthServiceApplication.java` (annotated `@EnableAsync` for async activation email).
   Key source files:
 - `controllers/AuthController.java` — REST controller at `/auth`
 - `filters/JwtAuthFilter.java` — `OncePerRequestFilter`
 - `services/JWTService.java` — generates/validates tokens
+- `services/UserService.java` (+ impl) — `register`, `kichHoatTaiKhoan`, `findByEmail`, `loadUserByUsername`
+- `services/EmailService.java` (+ impl) — sends activation email (`@Async`)
   Auth REST endpoints (`/auth`):
+- `POST /auth/register` — Registers a new user and sends activation email
+- `POST /auth/login` — Authenticates, returns `JwtAuthResponse` (access token + userId), sets HttpOnly `refreshToken` cookie
+- `GET /auth/active?code=...` — Activates account via activation code
 - `POST /auth/refresh-token` — Refreshes access token via HttpOnly cookie
-- `GET /auth/validate-token` — Validates JWT and returns `{email, role, userId}` for internal calls (e.g. from chat-service)
+- `POST /auth/logout` — Clears the `refreshToken` cookie
+- `GET /auth/validate-token` — Validates JWT and returns `{email, role, userId}` for internal calls (e.g. from api-gateway and chat-service)
+- SMTP mail config lives in `auth-service` `application.yaml` (moved from api-gateway).
 
 ### `user-service`
 

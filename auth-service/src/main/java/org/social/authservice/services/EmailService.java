@@ -1,4 +1,4 @@
-package org.social.apigateway.services;
+package org.social.authservice.services;
 
 public interface EmailService {
     void guiEmailKichHoat(String toEmail, String maKichHoat);

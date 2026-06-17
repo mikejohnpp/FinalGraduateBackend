@@ -5,14 +5,17 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
-@EntityScan(basePackages = { "org.social.common.entities"})
-@EnableJpaRepositories(basePackages = {"org.social.common.repositories"})
+@EnableAsync
+@EntityScan(basePackages = { "org.social.common.entities" })
+@EnableJpaRepositories(basePackages = { "org.social.common.repositories" })
 @ComponentScan(basePackages = {
 		"org.social.authservice",
 		"org.social.common.exceptions"
 })
+
 public class AuthServiceApplication {
 
 	public static void main(String[] args) {
