@@ -16,5 +16,6 @@ public record PostDTO(
         Boolean hasLiked,
         String sentiment,
         Double confidence,
-        String cancelReason
+        String cancelReason,
+        String status
 ) {}

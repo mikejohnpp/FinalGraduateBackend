@@ -33,7 +33,8 @@ public class PostMapper {
                 hasLiked,
                 post.getSentiment(),
                 post.getConfidence(),
-                post.getCancelReason()
+                post.getCancelReason(),
+                post.getStatus()
         );
     }
 

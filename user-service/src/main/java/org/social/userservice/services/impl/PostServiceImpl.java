@@ -66,12 +66,20 @@ public class PostServiceImpl implements PostService {
         post.setIsActive(true);
 
         if (Boolean.TRUE.equals(request.isGroupPosted()) && request.groupId() != null) {
-            if (!userGroupRepository.existsByUserIdAndGroupId(request.userId(), request.groupId())) {
-                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Bạn không phải thành viên của nhóm này");
-            }
+            UserGroup membership = userGroupRepository.findByUserIdAndGroupId(request.userId(), request.groupId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Bạn không phải thành viên của nhóm này"));
+            
             Group group = new Group();
             group.setId(request.groupId());
             post.setGroup(group);
+
+            if ("ADMIN".equals(membership.getRole()) || "OWNER".equals(membership.getRole())) {
+                post.setStatus("APPROVED");
+            } else {
+                post.setStatus("PENDING");
+            }
+        } else {
+            post.setStatus("APPROVED");
         }
 
         Post savedPost = postRepository.save(post);
