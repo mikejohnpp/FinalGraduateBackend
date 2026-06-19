@@ -6,7 +6,13 @@ import org.springframework.data.jpa.domain.Specification;
 public class PostSpecification {
 
     public static Specification<Post> isActive() {
-        return (root, query, cb) -> cb.isTrue(root.get("isActive"));
+        return (root, query, cb) -> cb.and(
+                cb.isTrue(root.get("isActive")),
+                cb.or(
+                        cb.equal(root.get("status"), "APPROVED"),
+                        cb.isNull(root.get("status"))
+                )
+        );
     }
 
     public static Specification<Post> byUserId(Integer userId) {
