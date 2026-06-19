@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: chat-service
+  data:
+    redis:
+      host: ${REDIS_HOST:100.120.5.8}
+      port: ${REDIS_PORT:32034}
+      password: ${REDIS_PASSWORD:default}
   datasource:
     url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
     username: root

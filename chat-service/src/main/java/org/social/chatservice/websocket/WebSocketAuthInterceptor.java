@@ -23,13 +23,12 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     UserClient client;
 
     @Autowired
-    WebSocketSessionManager sessionManager;
+    RedisSessionManager sessionManager;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
 
-        StompHeaderAccessor accessor =
-                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         System.out.println("=================================");
         System.out.println("COMMAND = " + accessor.getCommand());
@@ -67,12 +66,12 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
         return message;
     }
+
     public void handleConnect(StompHeaderAccessor accessor) {
 
         System.out.println("===== HANDLE CONNECT =====");
 
-        String authorization =
-                accessor.getFirstNativeHeader("Authorization");
+        String authorization = accessor.getFirstNativeHeader("Authorization");
 
         System.out.println("Authorization = " + authorization);
 
@@ -82,8 +81,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
         System.out.println("Gọi user-service validate token...");
 
-        TokenValidateResponse response =
-                client.validateToken(authorization);
+        TokenValidateResponse response = client.validateToken(authorization);
 
         System.out.println("Validate response = " + response);
 
@@ -93,17 +91,14 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
         int userId = Integer.parseInt(data.get("userId"));
 
-        Authentication authentication =
-                new UsernamePasswordAuthenticationToken(
-                        data.get("userId"),
-                        null,
-                        data.get("role") != null
-                                ? List.of(
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                data.get("userId"),
+                null,
+                data.get("role") != null
+                        ? List.of(
                                 new SimpleGrantedAuthority(
-                                        data.get("role")
-                                ))
-                                : List.of()
-                );
+                                        data.get("role")))
+                        : List.of());
 
         System.out.println("Authentication = " + authentication);
 
@@ -114,8 +109,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
         sessionManager.addSession(
                 userId,
-                accessor.getSessionId()
-        );
+                accessor.getSessionId());
 
         System.out.println("Session đã lưu");
         System.out.println("userId = " + userId);
