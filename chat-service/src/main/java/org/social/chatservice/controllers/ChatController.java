@@ -1,6 +1,7 @@
 package org.social.chatservice.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.social.chatservice.messaging.relay.RedisMessageRelay;
 import org.social.chatservice.services.MessageService;
 import org.social.common.dto.conversation.requests.ChatMessageRequest;
 import org.social.common.dto.conversation.response.ChatMessageResponse;
@@ -13,7 +14,6 @@ import org.social.common.dto.call.request.CallAnswerRequest;
 import org.social.common.dto.call.request.IceCandidateRequest;
 import org.social.common.dto.call.response.CallSignalResponse;
 import org.social.common.entities.MessageType;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.security.Principal;
@@ -24,7 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatController {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final RedisMessageRelay messageRelay;
     private final MessageService messageService;
     private final ObjectMapper objectMapper;
 
@@ -35,7 +35,7 @@ public class ChatController {
 
         ChatMessageResponse saved = messageService.saveMessage(chatMessageRequest);
 
-        messagingTemplate.convertAndSend(
+        messageRelay.broadcast(
                 "/topic/conversation/" + saved.getConversationId(),
                 saved);
     }
@@ -44,7 +44,7 @@ public class ChatController {
     public void typingIndicator(@Payload org.social.common.dto.conversation.requests.TypingIndicator request,
             Principal principal) {
         request.setSenderId(Integer.valueOf(principal.getName()));
-        messagingTemplate.convertAndSend(
+        messageRelay.broadcast(
                 "/topic/conversation/" + request.getConversationId() + "/typing",
                 request);
     }
@@ -89,7 +89,7 @@ public class ChatController {
             enrichedPayload.put("fromUserId", fromUserId);
 
             CallSignalResponse response = new CallSignalResponse(request.type(), enrichedPayload);
-            messagingTemplate.convertAndSendToUser(
+            messageRelay.sendToUser(
                     toUserId.toString(),
                     "/queue/call",
                     response);
@@ -115,7 +115,7 @@ public class ChatController {
                     ChatMessageResponse callMsg = messageService.saveCallEndedMessage(
                             conversationId, messageSender, messageType, durationSeconds);
 
-                    messagingTemplate.convertAndSend(
+                    messageRelay.broadcast(
                             "/topic/conversation/" + conversationId,
                             callMsg);
 
