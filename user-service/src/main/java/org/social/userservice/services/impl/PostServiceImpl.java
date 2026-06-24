@@ -14,7 +14,7 @@ import org.social.common.events.AnalyzeSentimentEvent;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
-import org.social.common.kafka.KafkaTopics;
+import org.springframework.beans.factory.annotation.Value;
 import org.social.common.kafka.support.EventEnvelope;
 import org.social.common.kafka.support.EventPublisher;
 import org.social.common.repositories.PostLikeRepository;
@@ -36,6 +36,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
+
+    @Value("${app.kafka.topics.post.analyze.preprocessor}")
+    private String preprocessorTopic;
 
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
@@ -85,7 +88,7 @@ public class PostServiceImpl implements PostService {
         Post savedPost = postRepository.save(post);
 
         userEventPublisher.publish(
-                KafkaTopics.POST_ANALYZE_PREPROCESSOR,
+                preprocessorTopic,
                 savedPost.getId().toString(),
                 EventEnvelope.of("postAnalyze", "user-service",
                         new AnalyzeSentimentEvent(savedPost.getContent(), savedPost.getId(), "POST", savedPost.getId()))

@@ -14,7 +14,7 @@ import org.social.common.events.AnalyzeSentimentEvent;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
-import org.social.common.kafka.KafkaTopics;
+import org.springframework.beans.factory.annotation.Value;
 import org.social.common.kafka.support.EventEnvelope;
 import org.social.common.kafka.support.EventPublisher;
 import org.social.common.repositories.CommentLikeRepository;
@@ -33,6 +33,9 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
+
+    @Value("${app.kafka.topics.post.analyze.preprocessor}")
+    private String preprocessorTopic;
 
     private final CommentRepository commentRepository;
     private final CommentLikeRepository commentLikeRepository;
@@ -117,7 +120,7 @@ public class CommentServiceImpl implements CommentService {
         Comment savedComment = commentRepository.save(comment);
 
         userEventPublisher.publish(
-                KafkaTopics.POST_ANALYZE_PREPROCESSOR,
+                preprocessorTopic,
                 savedComment.getId().toString(),
                 EventEnvelope.of("postAnalyze", "user-service",
                         new AnalyzeSentimentEvent(savedComment.getContent(), null, "COMMENT", savedComment.getId()))

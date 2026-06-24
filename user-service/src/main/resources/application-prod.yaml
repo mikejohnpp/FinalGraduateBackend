@@ -9,12 +9,13 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:""}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jpa:
-      hibernate:
-        ddl-auto: none
-        naming:
-          physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-      show-sql: true
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:final-graduate-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092}
     consumer:
@@ -43,5 +44,5 @@ spring:
 app:
   kafka:
     topics:
+      post.analyze.preprocessor: post.analyze.preprocessor
       post.analyze.result: post.analyze.result
-      post.analyze.preprocessor: dev.post.analyze.preprocessor

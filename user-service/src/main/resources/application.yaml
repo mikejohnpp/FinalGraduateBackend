@@ -10,12 +10,13 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:""}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jpa:
-      hibernate:
-        ddl-auto: none
-        naming:
-          physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-      show-sql: true
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:100.120.5.8:31835}
     consumer:
