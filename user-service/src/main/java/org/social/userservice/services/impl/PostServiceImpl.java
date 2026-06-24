@@ -10,9 +10,13 @@ import org.social.common.dto.post.views.PostDTO;
 import org.social.common.dto.post.views.PostDetailDTO;
 import org.social.common.dto.post.views.PostSummaryDTO;
 import org.social.common.entities.*;
+import org.social.common.events.AnalyzeSentimentEvent;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
+import org.springframework.beans.factory.annotation.Value;
+import org.social.common.kafka.support.EventEnvelope;
+import org.social.common.kafka.support.EventPublisher;
 import org.social.common.repositories.PostLikeRepository;
 import org.social.common.repositories.PostRepository;
 import org.social.common.repositories.UserGroupRepository;
@@ -33,10 +37,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
 
+    @Value("${app.kafka.topics.post.analyze.preprocessor}")
+    private String preprocessorTopic;
+
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
     private final UserRepository userRepository;
     private final UserGroupRepository userGroupRepository;
+    private final EventPublisher userEventPublisher;
 
     private String getAuthorRole(Post post) {
         if (Boolean.TRUE.equals(post.getIsGroupPosted()) && post.getGroup() != null) {
@@ -61,15 +69,31 @@ public class PostServiceImpl implements PostService {
         post.setIsActive(true);
 
         if (Boolean.TRUE.equals(request.isGroupPosted()) && request.groupId() != null) {
-            if (!userGroupRepository.existsByUserIdAndGroupId(request.userId(), request.groupId())) {
-                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Bạn không phải thành viên của nhóm này");
-            }
+            UserGroup membership = userGroupRepository.findByUserIdAndGroupId(request.userId(), request.groupId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Bạn không phải thành viên của nhóm này"));
+            
             Group group = new Group();
             group.setId(request.groupId());
             post.setGroup(group);
+
+            if ("ADMIN".equals(membership.getRole()) || "OWNER".equals(membership.getRole())) {
+                post.setStatus("APPROVED");
+            } else {
+                post.setStatus("PENDING");
+            }
+        } else {
+            post.setStatus("APPROVED");
         }
 
         Post savedPost = postRepository.save(post);
+
+        userEventPublisher.publish(
+                preprocessorTopic,
+                savedPost.getId().toString(),
+                EventEnvelope.of("postAnalyze", "user-service",
+                        new AnalyzeSentimentEvent(savedPost.getContent(), savedPost.getId(), "POST", savedPost.getId()))
+        );
+
         return PostMapper.toPostDTO(savedPost, getAuthorRole(savedPost), false);
     }
 

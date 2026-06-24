@@ -5,6 +5,6 @@ import jakarta.validation.constraints.Size;
 
 public record CommentUpdateRequest(
         @NotBlank
-        @Size(max = 2000)
+        @Size(max = 40, message = "Nội dung bình luận không được vượt quá 40 ký tự")
         String content
 ) {}

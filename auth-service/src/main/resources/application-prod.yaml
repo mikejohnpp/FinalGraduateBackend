@@ -1,0 +1,33 @@
+server:
+  servlet:
+    context-path: /
+  port: 8080
+
+spring:
+  application:
+    name: auth-service
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ltphat240103@gmail.com
+    password: xzrq hcxb yhka jqnp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls.enable: true
+  datasource:
+    url: ${DB_URL:jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:''}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
+
+jwt:
+  secret: 9q7897937129387891375981312312312312131231192347192374973948712980347913274
+  expiration: 86400000

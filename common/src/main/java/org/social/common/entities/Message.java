@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.social.common.entities.MessageType;
 
 import java.time.Instant;
 
@@ -41,5 +42,11 @@ public class Message {
     @Column(name = "is_active")
     private Boolean isActive;
 
+    @Enumerated(EnumType.STRING)
+    @ColumnDefault("'TEXT'")
+    @Column(name = "message_type", nullable = false, length = 20)
+    private MessageType messageType = MessageType.TEXT;
 
+    @Column(name = "call_duration")
+    private Integer callDuration;
 }

@@ -14,5 +14,8 @@ public record PostDetailDTO(
         Instant createdAt,
         String content,
         long likeCount,
-        Boolean hasLiked
+        Boolean hasLiked,
+        String sentiment,
+        Double confidence,
+        String cancelReason
 ) {}

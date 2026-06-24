@@ -28,7 +28,10 @@ public class CommentMapper {
                 comment.getLikeCount() != null ? comment.getLikeCount() : 0,
                 comment.getReplyCount() != null ? comment.getReplyCount() : 0,
                 liked,
-                comment.getCreatedAt()
+                comment.getCreatedAt(),
+                comment.getSentiment(),
+                comment.getConfidence(),
+                comment.getCancelReason()
         );
     }
 }

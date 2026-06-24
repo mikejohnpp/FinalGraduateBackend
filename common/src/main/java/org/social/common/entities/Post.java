@@ -57,4 +57,17 @@ public class Post {
     @ColumnDefault("0")
     @Column(name = "like_count")
     private Integer likeCount;
+
+    @Column(name = "sentiment")
+    private String sentiment;
+
+    @Column(name = "confidence")
+    private Double confidence;
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
+    @ColumnDefault("'APPROVED'")
+    @Column(name = "status", length = 20)
+    private String status;
 }

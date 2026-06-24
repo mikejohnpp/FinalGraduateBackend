@@ -5,16 +5,18 @@ spring:
   application:
     name: user-service
   datasource:
-    url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
-    username: root
-    password: ""
+    url: ${DB_URL:jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull}
+#    url: jdbc:mysql://localhost:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:""}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jpa:
-      hibernate:
-        ddl-auto: none
-        naming:
-          physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-      show-sql: true
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:100.120.5.8:31835}
     consumer:
@@ -43,4 +45,5 @@ spring:
 app:
   kafka:
     topics:
+      post.analyze.preprocessor: dev.post.analyze.preprocessor
       post.analyze.result: dev.post.analyze.result

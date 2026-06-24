@@ -10,9 +10,13 @@ import org.social.common.entities.Comment;
 import org.social.common.entities.CommentLike;
 import org.social.common.entities.Post;
 import org.social.common.entities.User;
+import org.social.common.events.AnalyzeSentimentEvent;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
+import org.springframework.beans.factory.annotation.Value;
+import org.social.common.kafka.support.EventEnvelope;
+import org.social.common.kafka.support.EventPublisher;
 import org.social.common.repositories.CommentLikeRepository;
 import org.social.common.repositories.CommentRepository;
 import org.social.common.repositories.PostRepository;
@@ -30,10 +34,14 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
+    @Value("${app.kafka.topics.post.analyze.preprocessor}")
+    private String preprocessorTopic;
+
     private final CommentRepository commentRepository;
     private final CommentLikeRepository commentLikeRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final EventPublisher userEventPublisher;
 
     @Override
     public CursorPageResponse<CommentDTO> getComments(Integer postId, Integer userId, String cursor, int size) {
@@ -110,6 +118,14 @@ public class CommentServiceImpl implements CommentService {
         postRepository.save(post);
 
         Comment savedComment = commentRepository.save(comment);
+
+        userEventPublisher.publish(
+                preprocessorTopic,
+                savedComment.getId().toString(),
+                EventEnvelope.of("postAnalyze", "user-service",
+                        new AnalyzeSentimentEvent(savedComment.getContent(), null, "COMMENT", savedComment.getId()))
+        );
+
         return CommentMapper.toCommentDTO(savedComment, false);
     }
 

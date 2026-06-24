@@ -58,4 +58,12 @@ public class Comment {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "sentiment")
+    private String sentiment;
+
+    @Column(name = "confidence")
+    private Double confidence;
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
 }

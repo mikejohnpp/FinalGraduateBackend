@@ -2,6 +2,8 @@ package org.social.common.events;
 
 public record AnalyzeSentimentEvent(
         String sentence,
-        Integer postId
+        Integer postId,
+        String entityType,
+        Integer entityId
 ) {
 }

@@ -30,7 +30,11 @@ public class PostMapper {
                 post.getCreatedAt(),
                 post.getContent(),
                 0L,
-                hasLiked
+                hasLiked,
+                post.getSentiment(),
+                post.getConfidence(),
+                post.getCancelReason(),
+                post.getStatus()
         );
     }
 
@@ -47,7 +51,10 @@ public class PostMapper {
                 commentCount,
                 post.getContent(),
                 currentLikeCount,
-                hasLiked
+                hasLiked,
+                post.getSentiment(),
+                post.getConfidence(),
+                post.getCancelReason()
         );
     }
 
@@ -62,7 +69,10 @@ public class PostMapper {
                 post.getCreatedAt(),
                 post.getContent(),
                 currentLikeCount,
-                hasLiked
+                hasLiked,
+                post.getSentiment(),
+                post.getConfidence(),
+                post.getCancelReason()
         );
     }
 }
