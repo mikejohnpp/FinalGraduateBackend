@@ -1,7 +1,12 @@
 package org.social.apigateway.security;
 
+import java.util.List;
+
 public class Endpoints {
-        public static final String front_end_host = "http://localhost:3000";
+        public static final List<String> ALLOWED_ORIGINS = List.of(
+                "http://localhost:3000",
+                "https://vieface.io.vn"
+        );
 
         public static final String[] PUBLIC_GET_ENDPOINTS = new String[] {
                         "/auth/active",
