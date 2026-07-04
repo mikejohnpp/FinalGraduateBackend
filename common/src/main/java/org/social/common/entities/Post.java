@@ -8,7 +8,9 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -45,6 +47,10 @@ public class Post {
 
     @OneToMany(mappedBy = "post")
     private Set<Comment> comments = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC")
+    private List<PostMedia> media = new ArrayList<>();
 
     @ColumnDefault("1")
     @Column(name = "is_active")
