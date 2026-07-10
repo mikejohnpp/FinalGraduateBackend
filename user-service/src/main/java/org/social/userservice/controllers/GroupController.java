@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/groups")
@@ -71,6 +72,24 @@ public class GroupController {
         return ApiResponse.ok("Lấy danh sách thành viên thành công!", list);
     }
 
+    @PutMapping("/{id}/avatar")
+    public ResponseEntity<ApiResponse<GroupDTO>> updateAvatar(
+            @PathVariable Integer id,
+            @RequestParam Integer userId,
+            @RequestBody Map<String, String> body) {
+        GroupDTO dto = groupService.updateAvatar(id, userId, body.get("avatar"));
+        return ApiResponse.ok("Cập nhật ảnh đại diện nhóm thành công!", dto);
+    }
+
+    @PutMapping("/{id}/cover")
+    public ResponseEntity<ApiResponse<GroupDTO>> updateCover(
+            @PathVariable Integer id,
+            @RequestParam Integer userId,
+            @RequestBody Map<String, String> body) {
+        GroupDTO dto = groupService.updateCover(id, userId, body.get("coverPhoto"));
+        return ApiResponse.ok("Cập nhật ảnh bìa nhóm thành công!", dto);
+    }
+
     @GetMapping("/posts/feed")
     public ResponseEntity<ApiResponse<CursorPageResponse<PostSummaryDTO>>> getFeed(
             @RequestParam Integer userId,
@@ -79,6 +98,7 @@ public class GroupController {
         CursorPageResponse<PostSummaryDTO> result = groupService.getGroupFeed(userId, cursor, size);
         return ApiResponse.ok("Lấy bảng tin nhóm thành công!", result);
     }
+
     @GetMapping("/{id}/posts")
     public ResponseEntity<ApiResponse<CursorPageResponse<PostSummaryDTO>>> getGroupPosts(
             @PathVariable Integer id,

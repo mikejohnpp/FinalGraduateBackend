@@ -100,6 +100,10 @@ public class UserServiceImpl implements UserService {
             user.setPronouns(request.pronouns());
         if (request.language() != null)
             user.setLanguage(request.language());
+        if (request.avatar() != null)
+            user.setAvatar(request.avatar());
+        if (request.coverPhoto() != null)
+            user.setCoverPhoto(request.coverPhoto());
 
         userRepository.save(user);
 

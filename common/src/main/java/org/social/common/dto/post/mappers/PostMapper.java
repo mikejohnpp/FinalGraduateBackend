@@ -1,6 +1,7 @@
 package org.social.common.dto.post.mappers;
 
 import org.social.common.dto.group.mappers.GroupMapper;
+import org.social.common.dto.media.MediaMapper;
 import org.social.common.dto.post.views.PostDetailDTO;
 import org.social.common.dto.post.views.PostDTO;
 import org.social.common.dto.post.views.PostSummaryDTO;
@@ -11,13 +12,13 @@ import org.social.common.entities.User;
 public class PostMapper {
 
     private static AuthorDTO toAuthorDTO(User user) {
-        if (user == null) return null;
+        if (user == null)
+            return null;
         return new AuthorDTO(
                 user.getId(),
                 user.getUserName(),
                 user.getAvatar(),
-                user.getNickName()
-        );
+                user.getNickName());
     }
 
     public static PostDTO toPostDTO(Post post, String authorRole, boolean hasLiked) {
@@ -34,8 +35,8 @@ public class PostMapper {
                 post.getSentiment(),
                 post.getConfidence(),
                 post.getCancelReason(),
-                post.getStatus()
-        );
+                post.getStatus(),
+                MediaMapper.toPostMediaDTOs(post.getMedia()));
     }
 
     public static PostSummaryDTO toSummaryDTO(Post post, long likeCount, String authorRole, boolean hasLiked) {
@@ -54,8 +55,8 @@ public class PostMapper {
                 hasLiked,
                 post.getSentiment(),
                 post.getConfidence(),
-                post.getCancelReason()
-        );
+                post.getCancelReason(),
+                MediaMapper.toPostMediaDTOs(post.getMedia()));
     }
 
     public static PostDetailDTO toDetailDTO(Post post, long likeCount, String authorRole, boolean hasLiked) {
@@ -72,7 +73,7 @@ public class PostMapper {
                 hasLiked,
                 post.getSentiment(),
                 post.getConfidence(),
-                post.getCancelReason()
-        );
+                post.getCancelReason(),
+                MediaMapper.toPostMediaDTOs(post.getMedia()));
     }
 }
