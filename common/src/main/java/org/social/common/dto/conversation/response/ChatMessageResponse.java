@@ -18,4 +18,5 @@ public class ChatMessageResponse {
     private int conversationId;
     private MessageType messageType;
     private Integer callDuration;
+    private String tempId;
 }

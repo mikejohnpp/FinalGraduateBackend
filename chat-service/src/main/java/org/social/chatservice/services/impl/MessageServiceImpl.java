@@ -38,8 +38,8 @@ public class MessageServiceImpl implements MessageService {
         message.setSender(sender);
         message.setContent(chatMessage.getContent());
         message.setIsActive(true);
-        message.setCreatedAt(Instant.now());
-        message.setMessageType(MessageType.TEXT);
+        message.setCreatedAt(chatMessage.getCreatedAt());
+        message.setMessageType(chatMessage.getMessageType());
 
         Message saved = messageRepository.save(message);
 
@@ -50,7 +50,8 @@ public class MessageServiceImpl implements MessageService {
                 userResponseMapper.toDTO(sender),
                 conversation.getId(),
                 saved.getMessageType(),
-                saved.getCallDuration()
+                saved.getCallDuration(),
+                chatMessage.getTempId()
         );
     }
 
@@ -89,7 +90,8 @@ public class MessageServiceImpl implements MessageService {
                 userResponseMapper.toDTO(sender),
                 conversation.getId(),
                 saved.getMessageType(),
-                saved.getCallDuration()
+                saved.getCallDuration(),
+                null
         );
     }
 }

@@ -5,10 +5,10 @@ spring:
   application:
     name: user-service
   datasource:
-    url: ${DB_URL:jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull}
+    url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
 #    url: jdbc:mysql://localhost:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    username: root
+    password: ""
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
