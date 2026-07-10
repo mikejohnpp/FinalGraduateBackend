@@ -39,7 +39,7 @@ public class MessageServiceImpl implements MessageService {
         message.setContent(chatMessage.getContent());
         message.setIsActive(true);
         message.setCreatedAt(chatMessage.getCreatedAt());
-        message.setMessageType(MessageType.TEXT);
+        message.setMessageType(chatMessage.getMessageType());
 
         Message saved = messageRepository.save(message);
 
