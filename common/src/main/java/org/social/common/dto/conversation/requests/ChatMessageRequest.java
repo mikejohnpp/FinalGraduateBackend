@@ -19,4 +19,5 @@ public class ChatMessageRequest {
     private Integer senderId;
     private Boolean isActive;
     private MessageType messageType;
+    private String tempId;
 }

@@ -17,9 +17,9 @@ spring:
           auth: true
           starttls.enable: true
   datasource:
-    url: ${DB_URL:jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+    username: root
+    password: ''
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
