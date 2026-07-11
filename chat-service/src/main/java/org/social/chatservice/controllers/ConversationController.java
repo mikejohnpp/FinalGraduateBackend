@@ -62,6 +62,12 @@ public class ConversationController {
                         size));
     }
 
+    @GetMapping("/conversationImageAndFile/{conversationId}")
+    public ResponseEntity<ApiResponse<ConversationResponseDetail>> getConversationDetailImageAndFileById(@PathVariable int conversationId){
+        return ApiResponse.ok("Truy vấn thành công ",conversationService.getConversationDetailImageAndFile(conversationId));
+    }
+
+
     @GetMapping("/online")
     public ResponseEntity<ApiResponse<List<Integer>>> getUserOnline() {
 
