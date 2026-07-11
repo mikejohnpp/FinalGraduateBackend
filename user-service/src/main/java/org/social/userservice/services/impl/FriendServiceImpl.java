@@ -10,6 +10,9 @@ import org.social.common.entities.FriendStatus;
 import org.social.common.entities.User;
 import org.social.common.entities.UserFriend;
 import org.social.common.entities.UserFriendId;
+import org.social.common.entities.NotificationType;
+import org.social.common.events.NotificationEvent;
+import org.social.userservice.messaging.publishers.NotificationProducer;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
@@ -30,12 +33,14 @@ public class FriendServiceImpl implements FriendService {
 
     private final UserFriendRepository userFriendRepository;
     private final UserRepository userRepository;
+    private final NotificationProducer notificationProducer;
 
     @Override
     public CursorPageResponse<FriendRequestDTO> getPendingRequests(Integer userId, String cursor, int size) {
         Instant cursorInstant = (cursor != null) ? Instant.parse(cursor) : Instant.now();
 
-        List<UserFriend> requests = userFriendRepository.findPendingRequestsBefore(userId, cursorInstant, PageRequest.of(0, size + 1));
+        List<UserFriend> requests = userFriendRepository.findPendingRequestsBefore(userId, cursorInstant,
+                PageRequest.of(0, size + 1));
 
         boolean hasMore = requests.size() > size;
         List<UserFriend> pageData = hasMore ? requests.subList(0, size) : requests;
@@ -43,7 +48,8 @@ public class FriendServiceImpl implements FriendService {
         String nextCursor = pageData.isEmpty() ? null : pageData.getLast().getCreatedAt().toString();
 
         List<FriendRequestDTO> dtos = pageData.stream()
-                .map(uf -> FriendMapper.toFriendRequestDTO(uf, userFriendRepository.countMutualFriends(userId, uf.getId().getUserId())))
+                .map(uf -> FriendMapper.toFriendRequestDTO(uf,
+                        userFriendRepository.countMutualFriends(userId, uf.getId().getUserId())))
                 .toList();
 
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);
@@ -60,7 +66,8 @@ public class FriendServiceImpl implements FriendService {
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng", targetUserId));
 
         if (userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(userId, targetUserId, FriendStatus.ACCEPTED)
-                || userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(targetUserId, userId, FriendStatus.ACCEPTED)) {
+                || userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(targetUserId, userId,
+                        FriendStatus.ACCEPTED)) {
             throw new BusinessException(HttpStatus.CONFLICT, "Hai người đã là bạn bè");
         }
 
@@ -85,12 +92,23 @@ public class FriendServiceImpl implements FriendService {
         request.setStatus(FriendStatus.PENDING);
         request.setCreatedAt(Instant.now());
         userFriendRepository.save(request);
+
+        // Thông báo FRIEND_REQUEST cho người nhận
+        notificationProducer.publish(new NotificationEvent(
+                targetUserId,
+                userId,
+                NotificationType.FRIEND_REQUEST.name(),
+                "FRIEND",
+                userId,
+                null,
+                "/friends/requests"));
     }
 
     @Override
     @Transactional
     public void acceptRequest(Integer requestId, Integer userId) {
-        UserFriend pending = userFriendRepository.findByIdUserIdAndIdFriendIdAndStatus(requestId, userId, FriendStatus.PENDING)
+        UserFriend pending = userFriendRepository
+                .findByIdUserIdAndIdFriendIdAndStatus(requestId, userId, FriendStatus.PENDING)
                 .orElseThrow(() -> new ResourceNotFoundException("Lời mời kết bạn", requestId));
 
         Instant now = Instant.now();
@@ -110,6 +128,16 @@ public class FriendServiceImpl implements FriendService {
         reverse.setStatus(FriendStatus.ACCEPTED);
         reverse.setCreatedAt(now);
         userFriendRepository.save(reverse);
+
+        // Thông báo FRIEND_ACCEPT cho người đã gửi lời mời
+        notificationProducer.publish(new NotificationEvent(
+                requestId,
+                userId,
+                NotificationType.FRIEND_ACCEPT.name(),
+                "FRIEND",
+                userId,
+                null,
+                "/profile/" + userId));
     }
 
     @Override
@@ -125,7 +153,8 @@ public class FriendServiceImpl implements FriendService {
     public CursorPageResponse<FriendshipDTO> getFriends(Integer userId, String cursor, int size) {
         Instant cursorInstant = (cursor != null) ? Instant.parse(cursor) : Instant.now();
 
-        List<UserFriend> friends = userFriendRepository.findAcceptedFriendsBefore(userId, cursorInstant, PageRequest.of(0, size + 1));
+        List<UserFriend> friends = userFriendRepository.findAcceptedFriendsBefore(userId, cursorInstant,
+                PageRequest.of(0, size + 1));
 
         boolean hasMore = friends.size() > size;
         List<UserFriend> pageData = hasMore ? friends.subList(0, size) : friends;
@@ -133,7 +162,8 @@ public class FriendServiceImpl implements FriendService {
         String nextCursor = pageData.isEmpty() ? null : pageData.getLast().getCreatedAt().toString();
 
         List<FriendshipDTO> dtos = pageData.stream()
-                .map(uf -> FriendMapper.toFriendshipDTO(uf, userFriendRepository.countMutualFriends(userId, uf.getId().getFriendId())))
+                .map(uf -> FriendMapper.toFriendshipDTO(uf,
+                        userFriendRepository.countMutualFriends(userId, uf.getId().getFriendId())))
                 .toList();
 
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);
@@ -142,7 +172,8 @@ public class FriendServiceImpl implements FriendService {
     @Override
     public CursorPageResponse<FriendSuggestionDTO> getSuggestions(Integer userId, String cursor, int size) {
         List<Integer> myFriendIds = userFriendRepository.findAcceptedFriendIds(userId);
-        List<Integer> pendingIds = userFriendRepository.findPendingRequestsBefore(userId, Instant.now(), PageRequest.of(0, Integer.MAX_VALUE))
+        List<Integer> pendingIds = userFriendRepository
+                .findPendingRequestsBefore(userId, Instant.now(), PageRequest.of(0, Integer.MAX_VALUE))
                 .stream().map(uf -> uf.getId().getUserId()).toList();
 
         Integer cursorUserId = (cursor != null) ? Integer.parseInt(cursor) : Integer.MAX_VALUE;
@@ -152,11 +183,13 @@ public class FriendServiceImpl implements FriendService {
                 .filter(u -> Boolean.TRUE.equals(u.getIsActive()))
                 .filter(u -> !myFriendIds.contains(u.getId()))
                 .filter(u -> !pendingIds.contains(u.getId()))
-                .filter(u -> !userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(u.getId(), userId, FriendStatus.PENDING))
+                .filter(u -> !userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(u.getId(), userId,
+                        FriendStatus.PENDING))
                 .sorted((a, b) -> {
                     int ma = userFriendRepository.countMutualFriends(userId, a.getId());
                     int mb = userFriendRepository.countMutualFriends(userId, b.getId());
-                    if (mb != ma) return mb - ma;
+                    if (mb != ma)
+                        return mb - ma;
                     return a.getId().compareTo(b.getId());
                 })
                 .filter(u -> u.getId() < cursorUserId || cursor == null)
@@ -169,7 +202,8 @@ public class FriendServiceImpl implements FriendService {
         String nextCursor = pageData.isEmpty() ? null : String.valueOf(pageData.getLast().getId());
 
         List<FriendSuggestionDTO> dtos = pageData.stream()
-                .map(u -> FriendMapper.toFriendSuggestionDTO(u, userFriendRepository.countMutualFriends(userId, u.getId())))
+                .map(u -> FriendMapper.toFriendSuggestionDTO(u,
+                        userFriendRepository.countMutualFriends(userId, u.getId())))
                 .toList();
 
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);

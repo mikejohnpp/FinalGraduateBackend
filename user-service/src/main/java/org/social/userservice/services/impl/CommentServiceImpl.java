@@ -10,9 +10,12 @@ import org.social.common.dto.comment.requests.CommentUpdateRequest;
 import org.social.common.dto.comment.views.CommentDTO;
 import org.social.common.entities.Comment;
 import org.social.common.entities.CommentLike;
+import org.social.common.entities.NotificationType;
 import org.social.common.entities.Post;
 import org.social.common.entities.User;
 import org.social.common.events.AnalyzeSentimentEvent;
+import org.social.common.events.NotificationEvent;
+import org.social.userservice.messaging.publishers.NotificationProducer;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
@@ -44,6 +47,7 @@ public class CommentServiceImpl implements CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final EventPublisher userEventPublisher;
+    private final NotificationProducer notificationProducer;
 
     @Override
     public CursorPageResponse<CommentDTO> getComments(Integer postId, Integer userId, String cursor, int size) {
@@ -118,6 +122,16 @@ public class CommentServiceImpl implements CommentService {
             comment.setParent(parent);
             parent.setReplyCount(parent.getReplyCount() + 1);
             commentRepository.save(parent);
+
+            // Thông báo REPLY cho chủ bình luận cha
+            notificationProducer.publish(new NotificationEvent(
+                    parent.getUser().getId(),
+                    request.userId(),
+                    NotificationType.REPLY.name(),
+                    "COMMENT",
+                    parent.getId(),
+                    null,
+                    "/posts/" + postId));
         }
 
         if (request.media() != null && !request.media().isEmpty()) {
@@ -130,6 +144,20 @@ public class CommentServiceImpl implements CommentService {
         postRepository.save(post);
 
         Comment savedComment = commentRepository.save(comment);
+
+        // Thông báo COMMENT cho chủ bài viết (chỉ với bình luận gốc)
+        // entityId = id bình luận vừa tạo để FE cuộn tới đúng bình luận, link giữ
+        // postId
+        if (request.parentId() == null) {
+            notificationProducer.publish(new NotificationEvent(
+                    post.getUser().getId(),
+                    request.userId(),
+                    NotificationType.COMMENT.name(),
+                    "COMMENT",
+                    savedComment.getId(),
+                    null,
+                    "/posts/" + postId));
+        }
 
         userEventPublisher.publish(
                 preprocessorTopic,

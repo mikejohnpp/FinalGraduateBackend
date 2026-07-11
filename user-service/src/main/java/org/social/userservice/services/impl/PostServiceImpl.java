@@ -13,17 +13,21 @@ import org.social.common.dto.post.views.PostDetailDTO;
 import org.social.common.dto.post.views.PostSummaryDTO;
 import org.social.common.entities.*;
 import org.social.common.events.AnalyzeSentimentEvent;
+import org.social.common.events.NotificationEvent;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.social.common.kafka.support.EventEnvelope;
 import org.social.common.kafka.support.EventPublisher;
+import org.social.common.repositories.GroupRepository;
 import org.social.common.repositories.PostLikeRepository;
 import org.social.common.repositories.PostRepository;
 import org.social.common.repositories.UserGroupRepository;
 import org.social.common.repositories.UserRepository;
+import org.social.userservice.messaging.publishers.NotificationProducer;
 import org.social.userservice.services.PostService;
+
 import org.social.userservice.specifications.PostSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -46,7 +50,9 @@ public class PostServiceImpl implements PostService {
     private final PostLikeRepository postLikeRepository;
     private final UserRepository userRepository;
     private final UserGroupRepository userGroupRepository;
+    private final GroupRepository groupRepository;
     private final EventPublisher userEventPublisher;
+    private final NotificationProducer notificationProducer;
 
     private String getAuthorRole(Post post) {
         if (Boolean.TRUE.equals(post.getIsGroupPosted()) && post.getGroup() != null) {
@@ -100,6 +106,20 @@ public class PostServiceImpl implements PostService {
                 EventEnvelope.of("postAnalyze", "user-service",
                         new AnalyzeSentimentEvent(savedPost.getContent(), savedPost.getId(), "POST",
                                 savedPost.getId())));
+
+        // Bài viết nhóm chờ duyệt: thông báo GROUP_POST_PENDING cho admin nhóm
+        if ("PENDING".equals(savedPost.getStatus()) && request.groupId() != null) {
+            groupRepository.findByIdAndIsActiveTrue(request.groupId())
+                    .filter(g -> g.getAdmin() != null)
+                    .ifPresent(g -> notificationProducer.publish(new NotificationEvent(
+                            g.getAdmin().getId(),
+                            request.userId(),
+                            NotificationType.GROUP_POST_PENDING.name(),
+                            "POST",
+                            savedPost.getId(),
+                            null,
+                            "/groups/" + request.groupId())));
+        }
 
         return PostMapper.toPostDTO(savedPost, getAuthorRole(savedPost), false);
     }

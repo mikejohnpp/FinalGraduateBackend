@@ -15,7 +15,9 @@ import org.social.common.entities.*;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
+import org.social.common.events.NotificationEvent;
 import org.social.common.repositories.*;
+import org.social.userservice.messaging.publishers.NotificationProducer;
 import org.social.userservice.services.GroupService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +38,7 @@ public class GroupServiceImpl implements GroupService {
         private final UserRepository userRepository;
         private final PostRepository postRepository;
         private final PostLikeRepository postLikeRepository;
+        private final NotificationProducer notificationProducer;
 
         @Override
         @Transactional
@@ -145,6 +148,18 @@ public class GroupServiceImpl implements GroupService {
                 membership.setStatus(finalStatus);
                 membership.setRequestedAt(Instant.now());
                 userGroupRepository.save(membership);
+
+                // Nhóm kín: gửi thông báo GROUP_JOIN_REQUEST cho admin nhóm để duyệt
+                if (isPrivate && group.getAdmin() != null) {
+                        notificationProducer.publish(new NotificationEvent(
+                                        group.getAdmin().getId(),
+                                        userId,
+                                        NotificationType.GROUP_JOIN_REQUEST.name(),
+                                        "GROUP",
+                                        groupId,
+                                        null,
+                                        "/groups/" + groupId));
+                }
 
                 return new org.social.common.dto.group.responses.JoinGroupResponse(finalStatus);
         }
