@@ -26,4 +26,6 @@ public interface ConversationService {
             org.social.common.dto.conversation.requests.AddMemberRequest request);
 
     ConversationResponseDetail getConversationDetail(int conversationId, int page, int size);
+
+    ConversationResponseDetail getConversationDetailImageAndFile(int conversationId);
 }

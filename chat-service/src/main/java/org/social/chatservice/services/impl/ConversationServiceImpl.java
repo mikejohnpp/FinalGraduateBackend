@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,7 +47,7 @@ public class ConversationServiceImpl implements ConversationService {
         @Override
         public Set<ConversationResponse> getAllConversations(int userId) {
                 User user = userRepository.findById(Long.valueOf(userId)).orElseThrow(
-                                () -> new BusinessException("Không tìm thấy người dùng có emaik: " + userId));
+                                () -> new BusinessException("Không tìm thấy người"));
 
                 Set<Conversation> conversations = user.getConversation();
                 return conversations.stream()
@@ -261,7 +262,7 @@ public class ConversationServiceImpl implements ConversationService {
                                 page,
                                 size,
                                 sort);
-                Page<Message> messagePage = messageRepository.findByConversationIdAndIsActiveTrue(
+                Page<Message> messagePage = messageRepository.findByConversationId(
                                 conversationId,
                                 pageable);
 
@@ -284,4 +285,28 @@ public class ConversationServiceImpl implements ConversationService {
                                 messagePage.getTotalPages(),
                                 messagePage.getTotalElements());
         }
+
+        @Override
+        public ConversationResponseDetail getConversationDetailImageAndFile(int conversationId) {
+                Conversation conversation = conversationRepository.findByIdAndIsActiveTrue(conversationId)
+                        .orElseThrow(() -> new BusinessException(
+                                "Không tìm thấy conversation"));
+
+                List<Message> messageList = messageRepository.findByConversationIdAndMessageTypeIn(conversation.getId(),List.of(MessageType.FILE,MessageType.IMAGE));
+                Set<MessageResponse> messages = messageList
+                        .stream()
+                        .map(messageResponseMapper::toDTO)
+                        .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+                Set<UserResponse> members = conversation.getUser()
+                        .stream()
+                        .map(userResponseMapper::toDTO)
+                        .collect(Collectors.toSet());
+                ConversationResponseDetail response = new ConversationResponseDetail();
+                response.setConversationId(conversation.getId());
+                response.setMembers(members);
+                response.setMessages(messages);
+                return response;
+        }
+
+
 }
