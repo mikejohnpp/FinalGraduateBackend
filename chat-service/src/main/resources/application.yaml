@@ -50,6 +50,7 @@ app:
     topics:
       demo-ping: demo.ping
       demo-pong: demo.pong
+      friend.accepted: dev.friend.accepted
 
 auth-service:
   url: http://localhost:9093/

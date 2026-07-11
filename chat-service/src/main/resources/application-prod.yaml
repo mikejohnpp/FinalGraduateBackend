@@ -50,6 +50,7 @@ app:
     topics:
       demo-ping: demo.ping
       demo-pong: demo.pong
+      friend.accepted: friend.accepted
 
 auth-service:
   url: http://auth-service:3000/

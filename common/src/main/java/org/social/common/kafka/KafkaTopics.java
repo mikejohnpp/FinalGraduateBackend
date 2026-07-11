@@ -15,6 +15,8 @@ public final class KafkaTopics {
 
     public static final String NOTIFICATION_CREATED = "dev.notification.created";
 
+    public static final String FRIEND_ACCEPTED = "dev.friend.accepted";
+
     public static final String DLT_SUFFIX = ".dlt";
 
 }

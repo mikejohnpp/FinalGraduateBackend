@@ -8,16 +8,22 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.Set;
 
-
 public interface ConversationService {
 
     Set<ConversationResponse> getAllConversations(int userId);
 
-    ResponseEntity<ApiResponse<ConversationResponse>> createConversation(int userOppenentId,int userCurrentId);
+    ResponseEntity<ApiResponse<ConversationResponse>> createConversation(int userOppenentId, int userCurrentId);
+
+    /**
+     * Tạo sẵn (hoặc lấy) cuộc trò chuyện 1-1 giữa hai người. Idempotent: nếu đã
+     * tồn tại thì không tạo mới. Dùng cho luồng sự kiện (vd. kết bạn thành công).
+     */
+    void ensurePrivateConversation(int userAId, int userBId);
 
     ResponseEntity<ApiResponse<ConversationResponse>> createGroupConversation(CreateConversationGroupRequest request);
 
-    ResponseEntity<ApiResponse<ConversationResponse>> addMembersToGroup(int conversationId, org.social.common.dto.conversation.requests.AddMemberRequest request);
+    ResponseEntity<ApiResponse<ConversationResponse>> addMembersToGroup(int conversationId,
+            org.social.common.dto.conversation.requests.AddMemberRequest request);
 
     ConversationResponseDetail getConversationDetail(int conversationId, int page, int size);
 }

@@ -46,3 +46,5 @@ app:
     topics:
       post.analyze.preprocessor: post.analyze.preprocessor
       post.analyze.result: post.analyze.result
+      notification.created: notification.created
+      friend.accepted: friend.accepted

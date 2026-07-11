@@ -48,3 +48,4 @@ app:
       post.analyze.preprocessor: dev.post.analyze.preprocessor
       post.analyze.result: dev.post.analyze.result
       notification.created: dev.notification.created
+      friend.accepted: dev.friend.accepted

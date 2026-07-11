@@ -1,7 +1,9 @@
 package org.social.chatservice.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.social.chatservice.services.ConversationService;
+
 import org.social.common.dto.ApiResponse;
 import org.social.common.dto.conversation.mappers.ConversationResponseMapper;
 import org.social.common.dto.conversation.mappers.MessageResponseMapper;
@@ -28,9 +30,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ConversationServiceImpl implements ConversationService {
+
         private final UserRepository userRepository;
         private final ConversationRepository conversationRepository;
         private final MessageRepository messageRepository;
@@ -108,6 +112,58 @@ public class ConversationServiceImpl implements ConversationService {
         }
 
         @Override
+        @org.springframework.transaction.annotation.Transactional
+        public void ensurePrivateConversation(int userAId, int userBId) {
+                if (userAId == userBId) {
+                        return;
+                }
+
+                User userA = userRepository.findById(Long.valueOf(userAId))
+                                .orElseThrow(() -> new BusinessException("Không tìm thấy user: " + userAId));
+                User userB = userRepository.findById(Long.valueOf(userBId))
+                                .orElseThrow(() -> new BusinessException("Không tìm thấy user: " + userBId));
+
+                Optional<Conversation> existing = conversationRepository.findPrivateConversation(userA, userB);
+                if (existing.isPresent()) {
+                        log.debug("[chat-service] Private conversation already exists for users {} & {}, skip",
+                                        userAId, userBId);
+                        return;
+                }
+
+                Conversation conversation = new Conversation();
+                Set<User> members = conversation.getUser();
+                members.add(userA);
+                members.add(userB);
+                conversation.setUser(members);
+                conversation.setIsGroup(false);
+                conversation.setIsActive(true);
+                conversation.setCreatedAt(Instant.now());
+                Conversation saved = conversationRepository.save(conversation);
+
+                ConversationUser cuA = new ConversationUser();
+                ConversationUserId cuIdA = new ConversationUserId();
+                cuIdA.setConversationId(saved.getId());
+                cuIdA.setUserId(userA.getId());
+                cuA.setId(cuIdA);
+                cuA.setConversation(saved);
+                cuA.setUser(userA);
+
+                ConversationUser cuB = new ConversationUser();
+                ConversationUserId cuIdB = new ConversationUserId();
+                cuIdB.setConversationId(saved.getId());
+                cuIdB.setUserId(userB.getId());
+                cuB.setId(cuIdB);
+                cuB.setConversation(saved);
+                cuB.setUser(userB);
+
+                conversationUserRepository.save(cuA);
+                conversationUserRepository.save(cuB);
+
+                log.info("[chat-service] Created private conversation {} for users {} & {}",
+                                saved.getId(), userAId, userBId);
+        }
+
+        @Override
         public ResponseEntity<ApiResponse<ConversationResponse>> createGroupConversation(
                         org.social.common.dto.conversation.requests.CreateConversationGroupRequest request) {
                 Set<Integer> memberIds = new java.util.HashSet<>(request.getMemberIds());
@@ -148,26 +204,28 @@ public class ConversationServiceImpl implements ConversationService {
         }
 
         @Override
-        public ResponseEntity<ApiResponse<ConversationResponse>> addMembersToGroup(int conversationId, org.social.common.dto.conversation.requests.AddMemberRequest request) {
+        public ResponseEntity<ApiResponse<ConversationResponse>> addMembersToGroup(int conversationId,
+                        org.social.common.dto.conversation.requests.AddMemberRequest request) {
                 Conversation conversation = conversationRepository.findById(conversationId)
-                        .orElseThrow(() -> new BusinessException("Không tìm thấy conversation"));
-                
+                                .orElseThrow(() -> new BusinessException("Không tìm thấy conversation"));
+
                 if (!conversation.getIsGroup()) {
                         throw new BusinessException("Đây không phải là nhóm trò chuyện");
                 }
 
                 Set<Integer> currentMemberIds = conversation.getUser().stream()
-                        .map(User::getId)
-                        .collect(Collectors.toSet());
+                                .map(User::getId)
+                                .collect(Collectors.toSet());
 
                 Set<User> newMembers = request.getMemberIds().stream()
-                        .filter(id -> !currentMemberIds.contains(id))
-                        .map(id -> userRepository.findById(Long.valueOf(id))
-                                .orElseThrow(() -> new BusinessException("Không tìm thấy user: " + id)))
-                        .collect(Collectors.toSet());
+                                .filter(id -> !currentMemberIds.contains(id))
+                                .map(id -> userRepository.findById(Long.valueOf(id))
+                                                .orElseThrow(() -> new BusinessException("Không tìm thấy user: " + id)))
+                                .collect(Collectors.toSet());
 
                 if (newMembers.isEmpty()) {
-                        return ApiResponse.ok("Thành viên đã có trong nhóm", conversationResponseMapper.toDTO(conversation));
+                        return ApiResponse.ok("Thành viên đã có trong nhóm",
+                                        conversationResponseMapper.toDTO(conversation));
                 }
 
                 Set<User> updatedMembers = conversation.getUser();
@@ -176,7 +234,7 @@ public class ConversationServiceImpl implements ConversationService {
 
                 Conversation savedConversation = conversationRepository.save(conversation);
 
-                for(User user : newMembers) {
+                for (User user : newMembers) {
                         ConversationUser cu = new ConversationUser();
                         ConversationUserId cuId = new ConversationUserId();
                         cuId.setConversationId(savedConversation.getId());
@@ -188,8 +246,8 @@ public class ConversationServiceImpl implements ConversationService {
                 }
 
                 return ApiResponse.ok(
-                        "Thêm thành viên vào nhóm thành công",
-                        conversationResponseMapper.toDTO(savedConversation));
+                                "Thêm thành viên vào nhóm thành công",
+                                conversationResponseMapper.toDTO(savedConversation));
         }
 
         @Override
