@@ -12,12 +12,12 @@ import java.util.List;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Integer> {
 
-    Page<Message> findByConversationIdAndIsActiveTrue(
+    Page<Message> findByConversationId(
             Integer conversationId,
             Pageable pageable
     );
 
-    List<Message> findByConversationIdAndIsActiveTrueAndMessageTypeIn(
+    List<Message> findByConversationIdAndMessageTypeIn(
             Integer conversationId,
             List<MessageType> messageTypes
     );

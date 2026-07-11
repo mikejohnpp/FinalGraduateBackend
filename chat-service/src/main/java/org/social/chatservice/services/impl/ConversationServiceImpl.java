@@ -204,7 +204,7 @@ public class ConversationServiceImpl implements ConversationService {
                                 page,
                                 size,
                                 sort);
-                Page<Message> messagePage = messageRepository.findByConversationIdAndIsActiveTrue(
+                Page<Message> messagePage = messageRepository.findByConversationId(
                                 conversationId,
                                 pageable);
 
@@ -234,7 +234,7 @@ public class ConversationServiceImpl implements ConversationService {
                         .orElseThrow(() -> new BusinessException(
                                 "Không tìm thấy conversation"));
 
-                List<Message> messageList = messageRepository.findByConversationIdAndIsActiveTrueAndMessageTypeIn(conversation.getId(),List.of(MessageType.FILE,MessageType.IMAGE));
+                List<Message> messageList = messageRepository.findByConversationIdAndMessageTypeIn(conversation.getId(),List.of(MessageType.FILE,MessageType.IMAGE));
                 Set<MessageResponse> messages = messageList
                         .stream()
                         .map(messageResponseMapper::toDTO)
