@@ -8,6 +8,7 @@ import org.social.common.dto.conversation.requests.CreateConversationRequest;
 import org.social.common.dto.conversation.response.ConversationResponse;
 import org.social.common.dto.conversation.response.ConversationResponseDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -24,14 +25,14 @@ public class ConversationController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<ConversationResponse>> createConversation(
-            @RequestBody CreateConversationRequest request) {
-        return conversationService.createConversation(request.getUserOppenentId(), request.getUserCurrentId());
+            @RequestBody CreateConversationRequest request,@RequestHeader("X-User-Id") String requestingUserId) {
+        return conversationService.createConversation(request.getUserOppenentId(), request.getUserCurrentId(),requestingUserId);
     }
 
     @PostMapping("/create_group")
     public ResponseEntity<ApiResponse<ConversationResponse>> createGroupConversation(
-            @RequestBody org.social.common.dto.conversation.requests.CreateConversationGroupRequest request) {
-        return conversationService.createGroupConversation(request);
+            @RequestBody org.social.common.dto.conversation.requests.CreateConversationGroupRequest request,@RequestHeader("X-User-Id") String requestingUserId) {
+        return conversationService.createGroupConversation(request,requestingUserId);
     }
 
     @PostMapping("/{conversationId}/members")
@@ -42,9 +43,8 @@ public class ConversationController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<Set<ConversationResponse>>> getConversations(@PathVariable int userId) {
-
-        Set<ConversationResponse> conversations = conversationService.getAllConversations(userId);
+    public ResponseEntity<ApiResponse<Set<ConversationResponse>>> getConversations(@PathVariable int userId, @RequestHeader("X-User-Id") String requestingUserId) {
+        Set<ConversationResponse> conversations = conversationService.getAllConversations(userId,requestingUserId);
 
         return ApiResponse.ok("Lấy ra danh sách conversation của user hiên tại", conversations);
     }

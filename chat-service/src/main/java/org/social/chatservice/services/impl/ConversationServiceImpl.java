@@ -18,6 +18,8 @@ import org.social.common.repositories.ConversationRepository;
 import org.social.common.repositories.ConversationUserRepository;
 import org.social.common.repositories.MessageRepository;
 import org.social.common.repositories.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -44,8 +46,10 @@ public class ConversationServiceImpl implements ConversationService {
         private final MessageResponseMapper messageResponseMapper;
         private final UserResponseMapper userResponseMapper;
 
+        @Cacheable(value="chat:conversations", key = "#userIdRequest")
         @Override
-        public Set<ConversationResponse> getAllConversations(int userId) {
+        public Set<ConversationResponse> getAllConversations(int userId,String userIdRequest) {
+                System.out.println("lần đầu thôi nha");
                 User user = userRepository.findById(Long.valueOf(userId)).orElseThrow(
                                 () -> new BusinessException("Không tìm thấy người"));
 
@@ -54,10 +58,10 @@ public class ConversationServiceImpl implements ConversationService {
                                 .map(conversationResponseMapper::toDTO)
                                 .collect(Collectors.toSet());
         }
-
+        @CacheEvict(value="chat:conversations", key = "#userIdRequest")
         @Override
         public ResponseEntity<ApiResponse<ConversationResponse>> createConversation(int userOppenentId,
-                        int userCurrentId) {
+                        int userCurrentId,String userIdRequest) {
                 User user1 = userRepository.findById(Long.valueOf(userOppenentId))
                                 .orElseThrow(() -> new BusinessException("Không tìm thấy user: " + userOppenentId));
 
@@ -163,10 +167,10 @@ public class ConversationServiceImpl implements ConversationService {
                 log.info("[chat-service] Created private conversation {} for users {} & {}",
                                 saved.getId(), userAId, userBId);
         }
-
+        @CacheEvict(value="chat:conversations", key = "#userIdRequest")
         @Override
         public ResponseEntity<ApiResponse<ConversationResponse>> createGroupConversation(
-                        org.social.common.dto.conversation.requests.CreateConversationGroupRequest request) {
+                        org.social.common.dto.conversation.requests.CreateConversationGroupRequest request,String userIdRequest) {
                 Set<Integer> memberIds = new java.util.HashSet<>(request.getMemberIds());
                 memberIds.add(request.getUserCurrentId());
 

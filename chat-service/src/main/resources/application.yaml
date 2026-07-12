@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: chat-service
+  cache:
+    redis:
+      time-to-live: 300s
   data:
     redis:
       host: ${REDIS_HOST:100.120.5.8}

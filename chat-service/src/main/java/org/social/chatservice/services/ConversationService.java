@@ -10,9 +10,9 @@ import java.util.Set;
 
 public interface ConversationService {
 
-    Set<ConversationResponse> getAllConversations(int userId);
+    Set<ConversationResponse> getAllConversations(int userId, String userIdRequest);
 
-    ResponseEntity<ApiResponse<ConversationResponse>> createConversation(int userOppenentId, int userCurrentId);
+    ResponseEntity<ApiResponse<ConversationResponse>> createConversation(int userOppenentId, int userCurrentId,String userIdRequest);
 
     /**
      * Tạo sẵn (hoặc lấy) cuộc trò chuyện 1-1 giữa hai người. Idempotent: nếu đã
@@ -20,7 +20,7 @@ public interface ConversationService {
      */
     void ensurePrivateConversation(int userAId, int userBId);
 
-    ResponseEntity<ApiResponse<ConversationResponse>> createGroupConversation(CreateConversationGroupRequest request);
+    ResponseEntity<ApiResponse<ConversationResponse>> createGroupConversation(CreateConversationGroupRequest request,String userIdRequest);
 
     ResponseEntity<ApiResponse<ConversationResponse>> addMembersToGroup(int conversationId,
             org.social.common.dto.conversation.requests.AddMemberRequest request);
