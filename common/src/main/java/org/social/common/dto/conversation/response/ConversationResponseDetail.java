@@ -19,7 +19,5 @@ public class ConversationResponseDetail {
     private Instant createdAt;
     private Set<UserResponse>members;
     private Set<MessageResponse> messages;
-    private int currentPage;
-    private int totalPages;
     private long totalElements;
 }
