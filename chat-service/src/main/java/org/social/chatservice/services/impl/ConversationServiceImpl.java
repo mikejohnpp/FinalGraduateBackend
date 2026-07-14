@@ -1,5 +1,6 @@
 package org.social.chatservice.services.impl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.social.chatservice.services.ConversationService;
@@ -8,10 +9,7 @@ import org.social.common.dto.ApiResponse;
 import org.social.common.dto.conversation.mappers.ConversationResponseMapper;
 import org.social.common.dto.conversation.mappers.MessageResponseMapper;
 import org.social.common.dto.conversation.mappers.UserResponseMapper;
-import org.social.common.dto.conversation.response.ConversationResponse;
-import org.social.common.dto.conversation.response.ConversationResponseDetail;
-import org.social.common.dto.conversation.response.MessageResponse;
-import org.social.common.dto.conversation.response.UserResponse;
+import org.social.common.dto.conversation.response.*;
 import org.social.common.entities.*;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.repositories.ConversationRepository;
@@ -28,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -45,10 +44,11 @@ public class ConversationServiceImpl implements ConversationService {
         private final ConversationResponseMapper conversationResponseMapper;
         private final MessageResponseMapper messageResponseMapper;
         private final UserResponseMapper userResponseMapper;
+        private final ChatRedisServiceImpl chatRedisService;
 
-        @Cacheable(value="chat:conversations", key = "#userIdRequest")
+        @Cacheable(value = "chat:conversations", key = "#userIdRequest")
         @Override
-        public Set<ConversationResponse> getAllConversations(int userId,String userIdRequest) {
+        public Set<ConversationResponse> getAllConversations(int userId, String userIdRequest) {
                 System.out.println("lần đầu thôi nha");
                 User user = userRepository.findById(Long.valueOf(userId)).orElseThrow(
                                 () -> new BusinessException("Không tìm thấy người"));
@@ -58,10 +58,11 @@ public class ConversationServiceImpl implements ConversationService {
                                 .map(conversationResponseMapper::toDTO)
                                 .collect(Collectors.toSet());
         }
-        @CacheEvict(value="chat:conversations", key = "#userIdRequest")
+
+        @CacheEvict(value = "chat:conversations", key = "#userIdRequest")
         @Override
         public ResponseEntity<ApiResponse<ConversationResponse>> createConversation(int userOppenentId,
-                        int userCurrentId,String userIdRequest) {
+                        int userCurrentId, String userIdRequest) {
                 User user1 = userRepository.findById(Long.valueOf(userOppenentId))
                                 .orElseThrow(() -> new BusinessException("Không tìm thấy user: " + userOppenentId));
 
@@ -167,10 +168,12 @@ public class ConversationServiceImpl implements ConversationService {
                 log.info("[chat-service] Created private conversation {} for users {} & {}",
                                 saved.getId(), userAId, userBId);
         }
-        @CacheEvict(value="chat:conversations", key = "#userIdRequest")
+
+        @CacheEvict(value = "chat:conversations", key = "#userIdRequest")
         @Override
         public ResponseEntity<ApiResponse<ConversationResponse>> createGroupConversation(
-                        org.social.common.dto.conversation.requests.CreateConversationGroupRequest request,String userIdRequest) {
+                        org.social.common.dto.conversation.requests.CreateConversationGroupRequest request,
+                        String userIdRequest) {
                 Set<Integer> memberIds = new java.util.HashSet<>(request.getMemberIds());
                 memberIds.add(request.getUserCurrentId());
 
@@ -256,10 +259,23 @@ public class ConversationServiceImpl implements ConversationService {
         }
 
         @Override
+        @Transactional
         public ConversationResponseDetail getConversationDetail(int conversationId, int page, int size) {
                 Conversation conversation = conversationRepository.findByIdAndIsActiveTrue(conversationId)
                                 .orElseThrow(() -> new BusinessException(
                                                 "Không tìm thấy conversation"));
+
+                List<ChatMessageResponse> messages1 = chatRedisService.getMessages(conversationId, 50);
+                Set<MessageResponse> ms = messages1.stream()
+                                .map(ms1 -> new MessageResponse(ms1.getId(), ms1.getConversationId(),
+                                                ms1.getContent(), ms1.getCreatedAt(), ms1.getUser(), ms1.getIsActive(),
+                                                ms1.getMessageType(), ms1.getCallDuration()))
+                                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+                if (!ms.isEmpty()) {
+                        for (MessageResponse mess : ms) {
+                                System.out.println(mess.getId());
+                        }
+                }
 
                 Sort sort = Sort.by("createdAt").descending();
                 Pageable pageable = PageRequest.of(
@@ -285,26 +301,25 @@ public class ConversationServiceImpl implements ConversationService {
                                 conversation.getCreatedAt(),
                                 members,
                                 messages,
-                                messagePage.getNumber(),
-                                messagePage.getTotalPages(),
                                 messagePage.getTotalElements());
         }
 
         @Override
         public ConversationResponseDetail getConversationDetailImageAndFile(int conversationId) {
                 Conversation conversation = conversationRepository.findByIdAndIsActiveTrue(conversationId)
-                        .orElseThrow(() -> new BusinessException(
-                                "Không tìm thấy conversation"));
+                                .orElseThrow(() -> new BusinessException(
+                                                "Không tìm thấy conversation"));
 
-                List<Message> messageList = messageRepository.findByConversationIdAndMessageTypeIn(conversation.getId(),List.of(MessageType.FILE,MessageType.IMAGE));
+                List<Message> messageList = messageRepository.findByConversationIdAndMessageTypeIn(conversation.getId(),
+                                List.of(MessageType.FILE, MessageType.IMAGE));
                 Set<MessageResponse> messages = messageList
-                        .stream()
-                        .map(messageResponseMapper::toDTO)
-                        .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+                                .stream()
+                                .map(messageResponseMapper::toDTO)
+                                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
                 Set<UserResponse> members = conversation.getUser()
-                        .stream()
-                        .map(userResponseMapper::toDTO)
-                        .collect(Collectors.toSet());
+                                .stream()
+                                .map(userResponseMapper::toDTO)
+                                .collect(Collectors.toSet());
                 ConversationResponseDetail response = new ConversationResponseDetail();
                 response.setConversationId(conversation.getId());
                 response.setMembers(members);
@@ -312,5 +327,95 @@ public class ConversationServiceImpl implements ConversationService {
                 return response;
         }
 
+        @Override
+        @Transactional
+        public ConversationResponseDetail getConversationDetail2(
+                        Integer conversationId,
+                        Long beforeId,
+                        Integer limit) {
+
+                Conversation conversation = conversationRepository.findByIdAndIsActiveTrue(conversationId)
+                                .orElseThrow(() -> new BusinessException("Không tìm thấy conversation"));
+
+                LinkedHashSet<MessageResponse> messages = new LinkedHashSet<>();
+
+                if (beforeId == null) {
+
+                        List<ChatMessageResponse> redisMessages = new java.util.ArrayList<>(
+                                        chatRedisService.getMessages(conversationId, limit));
+                        java.util.Collections.reverse(redisMessages);
+
+                        redisMessages.stream()
+                                        .map(this::toMessageResponse)
+                                        .forEach(messages::add);
+
+                        int remain = limit - messages.size();
+
+                        if (remain > 0) {
+
+                                Long oldestId;
+
+                                if (redisMessages.isEmpty()) {
+
+                                        oldestId = Long.MAX_VALUE;
+
+                                } else {
+
+                                        oldestId = redisMessages.get(redisMessages.size() - 1).getId();
+
+                                }
+
+                                List<Message> dbMessages = messageRepository.findOlderMessages(
+                                                conversationId,
+                                                oldestId,
+                                                remain);
+
+                                dbMessages.stream()
+                                                .map(messageResponseMapper::toDTO)
+                                                .forEach(messages::add);
+                        }
+
+                }
+
+
+                else {
+
+                        List<Message> dbMessages = messageRepository.findOlderMessages(
+                                        conversationId,
+                                        beforeId,
+                                        limit);
+
+                        dbMessages.stream()
+                                        .map(messageResponseMapper::toDTO)
+                                        .forEach(messages::add);
+                }
+
+                Set<UserResponse> members = conversation.getUser()
+                                .stream()
+                                .map(userResponseMapper::toDTO)
+                                .collect(Collectors.toSet());
+
+                return new ConversationResponseDetail(
+                                conversation.getId(),
+                                conversation.getName(),
+                                conversation.getIsGroup(),
+                                conversation.getCreatedAt(),
+                                members,
+                                messages,
+                                messages.size());
+        }
+
+        private MessageResponse toMessageResponse(ChatMessageResponse ms) {
+
+                return new MessageResponse(
+                                ms.getId(),
+                                ms.getConversationId(),
+                                ms.getContent(),
+                                ms.getCreatedAt(),
+                                ms.getUser(),
+                                ms.getIsActive(),
+                                ms.getMessageType(),
+                                ms.getCallDuration());
+        }
 
 }

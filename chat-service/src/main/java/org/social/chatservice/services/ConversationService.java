@@ -28,4 +28,10 @@ public interface ConversationService {
     ConversationResponseDetail getConversationDetail(int conversationId, int page, int size);
 
     ConversationResponseDetail getConversationDetailImageAndFile(int conversationId);
+
+    ConversationResponseDetail getConversationDetail2(
+            Integer conversationId,
+            Long beforeId,
+            Integer limit);
+
 }

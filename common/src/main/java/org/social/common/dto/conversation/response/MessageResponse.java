@@ -11,12 +11,12 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MessageResponse {
-    private int id;
+    private Long id;
     private int conversationId;
     private String content;
     private Instant createdAt;
     private UserResponse user;
-    private boolean isActive;
+    private Boolean isActive;
     private MessageType messageType;
     private Integer callDuration;
 }

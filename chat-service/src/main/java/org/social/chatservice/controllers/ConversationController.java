@@ -61,6 +61,18 @@ public class ConversationController {
                         page,
                         size));
     }
+    @GetMapping("/conversation2/{conversationId}")
+    public ResponseEntity<ApiResponse<ConversationResponseDetail>> getConversationDetailById2(
+            @PathVariable int conversationId,
+            @RequestParam(required = false) Long beforeId,
+            @RequestParam(defaultValue = "50") Integer size) {
+        return ApiResponse.ok(
+                "Lấy cuộc trò chuyện thành công",
+                conversationService.getConversationDetail2(
+                        conversationId,
+                        beforeId,
+                        size));
+    }
 
     @GetMapping("/conversationImageAndFile/{conversationId}")
     public ResponseEntity<ApiResponse<ConversationResponseDetail>> getConversationDetailImageAndFileById(@PathVariable int conversationId){

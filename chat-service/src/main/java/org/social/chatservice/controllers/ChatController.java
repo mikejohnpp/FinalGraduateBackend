@@ -30,7 +30,6 @@ public class ChatController {
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatMessageRequest chatMessageRequest, Principal principal) {
-        System.out.println(principal.getName());
         chatMessageRequest.setSenderId(Integer.valueOf(principal.getName()));
 
         ChatMessageResponse saved = messageService.saveMessage(chatMessageRequest);

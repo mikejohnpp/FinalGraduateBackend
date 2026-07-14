@@ -17,12 +17,12 @@ spring:
     username: root
     password: ''
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jpa:
-      hibernate:
-        ddl-auto: none
-        naming:
-          physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-      show-sql: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+#    show-sql: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:100.120.5.8:31835}
     producer:
@@ -54,6 +54,7 @@ app:
       demo-ping: demo.ping
       demo-pong: demo.pong
       friend.accepted: dev.friend.accepted
+      chat.save: dev.mess.saved
 
 auth-service:
   url: http://localhost:9093/
