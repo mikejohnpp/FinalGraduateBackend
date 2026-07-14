@@ -31,3 +31,7 @@ spring:
 jwt:
   secret: 9q7897937129387891375981312312312312131231192347192374973948712980347913274
   expiration: 86400000
+
+app:
+  frontend:
+    activation-url: http://localhost:3000/kich-hoat
