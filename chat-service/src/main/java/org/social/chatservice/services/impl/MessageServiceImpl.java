@@ -76,8 +76,8 @@ public class MessageServiceImpl implements MessageService {
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người gửi: " + senderId));
 
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phòng: " + conversationId));
+//        Conversation conversation = conversationRepository.findById(conversationId)
+//                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phòng: " + conversationId));
 
         String content;
         if (durationSeconds == null || durationSeconds == 0) {
@@ -93,26 +93,30 @@ public class MessageServiceImpl implements MessageService {
 
         long id = snowflake.nextId();
         message.setId(id);
-        message.setConversation(conversation);
+//        message.setConversation(conversation);
         message.setSender(sender);
         message.setContent(content);
         message.setIsActive(true);
         message.setCreatedAt(Instant.now());
         message.setMessageType(type);
-        message.setCallDuration(durationSeconds);
 
-        Message saved = messageRepository.save(message);
-
-        return new ChatMessageResponse(
-                saved.getId(),
-                saved.getContent(),
-                saved.getCreatedAt(),
+        ChatMessageResponse response = new ChatMessageResponse(
+                message.getId(),
+                message.getContent(),
+                message.getCreatedAt(),
                 userResponseMapper.toDTO(sender),
-                conversation.getId(),
-                saved.getMessageType(),
-                saved.getCallDuration(),
+                conversationId,
+                message.getMessageType(),
+                message.getCallDuration(),
                 null,
-                saved.getIsActive()
+                message.getIsActive()
         );
+
+        chatRedisService.saveMessage(response);
+
+        saveMessagePublishers.sendMessage(new SaveMessageEvent(id,conversationId,sender.getId(),message.getContent(),message.getIsActive(),message.getCreatedAt(),message.getMessageType()));
+
+
+        return response;
     }
 }
