@@ -13,7 +13,7 @@ public class SaveMessagePublishers {
 
     private final EventPublisher publisher;
 
-    @Value("${app.kafka.topics.chat.save")
+    @Value("${app.kafka.topics.chat.save}")
     private String saveMessagesTopic;
 
     public void sendMessage(SaveMessageEvent event) {
