@@ -27,6 +27,12 @@ spring:
                 - Path=/chat/**
               filters:
                 - StripPrefix=1
+            - id: notification-service
+              uri: http://notification-service:3000/
+              predicates:
+                - Path=/notifications/**
+              filters:
+                - StripPrefix=1
 
 auth-service:
   url: http://auth-service:3000/
