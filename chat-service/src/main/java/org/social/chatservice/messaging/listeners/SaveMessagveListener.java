@@ -30,7 +30,7 @@ public class SaveMessagveListener {
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
 
-    @KafkaListener(topics = "dev.mess.saved", groupId = "chat-service", containerFactory = "kafkaListenerContainerFactory")
+    @KafkaListener(topics = "${app.kafka.topics.chat.save}", groupId = "chat-service", containerFactory = "kafkaListenerContainerFactory")
     public void onSaveMessage(EventEnvelope<Object> envelope, Acknowledgment ack) {
         try {
             SaveMessageEvent payload = kafkaObjectMapper.convertValue(envelope.payload(), SaveMessageEvent.class);

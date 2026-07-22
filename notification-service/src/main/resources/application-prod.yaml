@@ -45,4 +45,4 @@ app:
     topics:
       demo-ping: demo.ping
       demo-pong: demo.pong
-
+      notification.created: notification.created

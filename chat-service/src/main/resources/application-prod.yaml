@@ -51,6 +51,7 @@ app:
       demo-ping: demo.ping
       demo-pong: demo.pong
       friend.accepted: friend.accepted
+      chat.save: mess.saved
 
 auth-service:
   url: http://auth-service:3000/
