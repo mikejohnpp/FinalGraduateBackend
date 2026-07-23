@@ -10,7 +10,12 @@ import org.social.common.exceptions.BusinessException;
 import org.social.common.repositories.StoryRepository;
 import org.social.common.repositories.UserRepository;
 import org.social.userservice.services.StoryService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 import java.time.Instant;
 import java.util.List;
@@ -25,10 +30,46 @@ public class StoryServiceImpl implements StoryService {
 
 
     @Override
-    public List<StoryDTO> getAllReel() {
-        List<Story> storys = storyRepository.findAllWithUser();
-        List<StoryDTO> rs = storys.stream().map(st -> new StoryDTO(st.getId(),st.getContent(),st.getUrlImage(),st.getUrlVideo(),userResponseMapper.toDTO(st.getUser()),st.getCreatedAt(),st.getIsActive(),st.getType(),st.getColor())).toList();
-        return rs;
+    public List<StoryDTO> getAllReel(Integer page) {
+        Pageable pageable = PageRequest.of(page, 10);
+        Page<Story> stories = storyRepository.findAllWithUser(pageable);
+        return stories.getContent()
+                .stream()
+                .map(st -> new StoryDTO(
+                        st.getId(),
+                        st.getContent(),
+                        st.getUrlImage(),
+                        st.getUrlVideo(),
+                        userResponseMapper.toDTO(st.getUser()),
+                        st.getCreatedAt(),
+                        st.getIsActive(),
+                        st.getType(),
+                        st.getColor()
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<StoryDTO> getAllReelByUserId(Integer userId, int page) {
+
+        Pageable pageable = PageRequest.of(page, 10);
+
+        Page<Story> stories = storyRepository.findAllByUserId(userId, pageable);
+
+        return stories.getContent()
+                .stream()
+                .map(st -> new StoryDTO(
+                        st.getId(),
+                        st.getContent(),
+                        st.getUrlImage(),
+                        st.getUrlVideo(),
+                        userResponseMapper.toDTO(st.getUser()),
+                        st.getCreatedAt(),
+                        st.getIsActive(),
+                        st.getType(),
+                        st.getColor()
+                ))
+                .toList();
     }
 
     @Override
@@ -61,3 +102,4 @@ public class StoryServiceImpl implements StoryService {
 
 
 }
+

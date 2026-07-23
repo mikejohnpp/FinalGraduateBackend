@@ -19,8 +19,14 @@ public class StoryController {
 
 
     @GetMapping("/reel")
-    public ResponseEntity<ApiResponse<List<StoryDTO>>> getAll(){
-        List<StoryDTO> result = storyService.getAllReel();
+    public ResponseEntity<ApiResponse<List<StoryDTO>>> getAll(@RequestParam(defaultValue = "0") Integer page){
+        List<StoryDTO> result = storyService.getAllReel(page);
+        return ApiResponse.ok("Lấy story thành công",result);
+    }
+
+    @GetMapping("/reelUser")
+    public ResponseEntity<ApiResponse<List<StoryDTO>>> getAllByUserId(@RequestParam Integer userId, @RequestParam(defaultValue = "0") Integer page){
+        List<StoryDTO> result = storyService.getAllReelByUserId(userId,page);
         return ApiResponse.ok("Lấy story thành công",result);
     }
 

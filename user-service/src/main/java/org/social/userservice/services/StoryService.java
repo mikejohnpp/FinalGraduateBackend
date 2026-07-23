@@ -9,11 +9,13 @@ import java.util.List;
 
 public interface StoryService {
 
-    List<StoryDTO> getAllReel();
+    List<StoryDTO> getAllReel(Integer page);
 
     StoryDTO create(StoryRequest storyRequest);
 
     List<StoryDTO> getAllWithFriends(Integer userId);
+
+    List<StoryDTO> getAllReelByUserId(Integer userId, int page);
 
 
 
