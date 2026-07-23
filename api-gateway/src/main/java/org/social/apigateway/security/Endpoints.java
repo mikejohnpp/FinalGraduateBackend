@@ -5,7 +5,8 @@ import java.util.List;
 public class Endpoints {
         public static final List<String> ALLOWED_ORIGINS = List.of(
                 "http://localhost:3000",
-                "https://vieface.io.vn"
+                "https://vieface.io.vn",
+                "http://192.168.1.20:3000"
         );
 
         public static final String[] PUBLIC_GET_ENDPOINTS = new String[] {

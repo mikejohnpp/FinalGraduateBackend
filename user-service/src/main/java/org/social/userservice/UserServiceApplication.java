@@ -12,7 +12,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @ComponentScan(basePackages = {
         "org.social.userservice",
         "org.social.common.exceptions",
-        "org.social.common.kafka"
+        "org.social.common.kafka",
+        "org.social.common.dto"
 })
 public class UserServiceApplication {
     public static void main(String[] args) {
