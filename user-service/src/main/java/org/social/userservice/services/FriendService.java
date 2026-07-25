@@ -5,6 +5,8 @@ import org.social.common.dto.friend.views.FriendRequestDTO;
 import org.social.common.dto.friend.views.FriendSuggestionDTO;
 import org.social.common.dto.friend.views.FriendshipDTO;
 
+import org.social.common.dto.friend.views.FriendStatusDTO;
+
 public interface FriendService {
     CursorPageResponse<FriendRequestDTO> getPendingRequests(Integer userId, String cursor, int size);
     void sendRequest(Integer userId, Integer targetUserId);
@@ -14,4 +16,6 @@ public interface FriendService {
     CursorPageResponse<FriendSuggestionDTO> getSuggestions(Integer userId, String cursor, int size);
     void unfriend(Integer userId, Integer friendUserId);
     int getPendingRequestCount(Integer userId);
+    FriendStatusDTO getFriendStatus(Integer userId, Integer targetId);
+    void cancelRequest(Integer userId, Integer targetId);
 }

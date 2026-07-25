@@ -26,6 +26,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.social.common.dto.friend.views.FriendRelationStatus;
+import org.social.common.dto.friend.views.FriendStatusDTO;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -231,5 +234,45 @@ public class FriendServiceImpl implements FriendService {
         @Override
         public int getPendingRequestCount(Integer userId) {
                 return userFriendRepository.countPendingRequests(userId);
+        }
+
+        @Override
+        public FriendStatusDTO getFriendStatus(Integer userId, Integer targetId) {
+                if (userId.equals(targetId)) {
+                        throw new BusinessException(HttpStatus.BAD_REQUEST, "Không thể tự kiểm tra trạng thái bạn bè với chính mình");
+                }
+
+                userRepository.findByIdAndIsActiveTrue(Long.valueOf(userId))
+                                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", userId));
+                userRepository.findByIdAndIsActiveTrue(Long.valueOf(targetId))
+                                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", targetId));
+
+                if (userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(userId, targetId, FriendStatus.ACCEPTED)
+                                || userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(targetId, userId, FriendStatus.ACCEPTED)) {
+                        return new FriendStatusDTO(FriendRelationStatus.FRIENDS, null);
+                }
+
+                if (userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(userId, targetId, FriendStatus.PENDING)) {
+                        return new FriendStatusDTO(FriendRelationStatus.PENDING_SENT, userId);
+                }
+
+                if (userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(targetId, userId, FriendStatus.PENDING)) {
+                        return new FriendStatusDTO(FriendRelationStatus.PENDING_RECEIVED, targetId);
+                }
+
+                return new FriendStatusDTO(FriendRelationStatus.NOT_FRIENDS, null);
+        }
+
+        @Override
+        @Transactional
+        public void cancelRequest(Integer userId, Integer targetId) {
+                if (userId.equals(targetId)) {
+                        throw new BusinessException(HttpStatus.BAD_REQUEST, "Không thể thực hiện với chính mình");
+                }
+
+                userFriendRepository.findByIdUserIdAndIdFriendIdAndStatus(userId, targetId, FriendStatus.PENDING)
+                                .orElseThrow(() -> new ResourceNotFoundException("Lời mời kết bạn", targetId));
+
+                userFriendRepository.deleteByUserIdAndFriendId(userId, targetId);
         }
 }
