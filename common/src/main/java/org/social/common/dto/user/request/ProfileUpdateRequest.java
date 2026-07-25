@@ -3,7 +3,10 @@ package org.social.common.dto.user.request;
 import jakarta.validation.constraints.Size;
 
 public record ProfileUpdateRequest(
+                @Size(max = 150) String userName,
+                @Size(max = 150) String nickName,
                 @Size(max = 101) String bio,
+
                 @Size(max = 100) String location,
                 @Size(max = 200) String education,
                 @Size(max = 200) String workplace,
