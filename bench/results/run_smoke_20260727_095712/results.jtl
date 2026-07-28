@@ -1,0 +1,18 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1785121033726,660,POST /auth/login,200,OK,setUp: Auth Flow 1-1,text,true,,1655,270,1,1,https://api.vieface.io.vn/auth/login,658,0,392
+1785121034436,78,GET /auth/validate-token,200,OK,setUp: Auth Flow 1-1,text,true,,1153,688,1,1,https://api.vieface.io.vn/auth/validate-token,78,0,0
+1785121034848,237,GET /users/{id}/profile,200,OK,Main Workload: User Activity & Operations 1-1,text,true,,1669,493,1,1,https://api.vieface.io.vn/users/2/profile,237,0,146
+1785121035390,516,GET /users/search,200,OK,Main Workload: User Activity & Operations 1-1,text,true,,1941,494,1,1,https://api.vieface.io.vn/users/search?q=a,198,0,0
+1785121036209,118,GET /users/posts/suggested (Feed),200,OK,Main Workload: User Activity & Operations 1-1,text,true,,6186,516,1,1,https://api.vieface.io.vn/users/posts/suggested?userId=2&size=10,116,0,0
+1785121036629,251,POST /users/posts (Create Post),201,Created,Main Workload: User Activity & Operations 1-1,text,true,,1565,622,1,1,https://api.vieface.io.vn/users/posts,250,0,0
+1785121037184,106,POST /users/posts/{id}/like,201,Created,Main Workload: User Activity & Operations 1-1,text,true,,1089,531,1,1,https://api.vieface.io.vn/users/posts/156/like,105,0,0
+1785121037592,109,POST /users/posts/{postId}/comments (Create Comment),200,OK,Main Workload: User Activity & Operations 1-1,text,true,,1492,589,1,1,https://api.vieface.io.vn/users/posts/156/comments,109,0,0
+1785121038005,86,GET /users/posts/{postId}/comments (List Comments),200,OK,Main Workload: User Activity & Operations 1-1,text,true,,1552,511,1,1,https://api.vieface.io.vn/users/posts/156/comments?userId=2,84,0,0
+1785121038393,179,GET /users/friends/suggestions,200,OK,Main Workload: User Activity & Operations 1-1,text,true,,2026,512,1,1,https://api.vieface.io.vn/users/friends/suggestions?userId=2,178,0,0
+1785121038875,111,GET /users/groups/joined,200,OK,Main Workload: User Activity & Operations 1-1,text,true,,3063,506,1,1,https://api.vieface.io.vn/users/groups/joined?userId=2,110,0,0
+1785121039287,101,GET /users/groups/suggested,200,OK,Main Workload: User Activity & Operations 1-1,text,true,,2743,509,1,1,https://api.vieface.io.vn/users/groups/suggested?userId=2,100,0,0
+1785121039690,201,GET /chat/conversations/user/{userId},200,OK,Main Workload: User Activity & Operations 1-1,text,true,,5685,503,1,1,https://api.vieface.io.vn/chat/conversations/user/2,199,0,0
+1785121040192,75,GET /chat/conversations/online,200,OK,Main Workload: User Activity & Operations 1-1,text,true,,1106,503,1,1,https://api.vieface.io.vn/chat/conversations/online,75,0,0
+1785121040568,79,GET /notifications/unread-count,200,OK,Main Workload: User Activity & Operations 1-1,text,true,,1112,513,1,1,https://api.vieface.io.vn/notifications/unread-count?userId=2,79,0,0
+1785121040950,134,GET /users/admin/reports/overview,200,OK,Main Workload: User Activity & Operations 1-1,text,true,,1225,506,1,1,https://api.vieface.io.vn/users/admin/reports/overview,134,0,0
+1785121041387,197,GET /users/admin/sentiment/overview,200,OK,Main Workload: User Activity & Operations 1-1,text,true,,1250,508,1,1,https://api.vieface.io.vn/users/admin/sentiment/overview,197,0,0
