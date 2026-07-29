@@ -50,7 +50,7 @@ public class SaveMessagveListener {
             message.setMessageType(payload.messageType());
 
             messageRepository.save(message);
-            System.out.println("hello kafla");
+//            System.out.println("hello kafla");
         } catch (Exception e) {
             log.error("[chat-service] Lỗi xử lý sự kiện kết bạn (eventId={}): {}",
                     envelope.eventId(), e.getMessage(), e);

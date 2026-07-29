@@ -85,7 +85,7 @@ public class ConversationController {
 
         List<Integer> onlineUsers = new ArrayList<>(
                 sessionManager.getOnlineUsers());
-        System.out.println("user online nef mayas bes" + onlineUsers);
+//        System.out.println("user online nef mayas bes" + onlineUsers);
         return ApiResponse.ok("Lấy được danh sách userOnline", onlineUsers);
 
     }

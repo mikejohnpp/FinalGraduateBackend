@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: notification-service
+  threads:
+    virtual:
+      enabled: true
   datasource:
     url: ${DB_URL:jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull}
     username: ${DB_USERNAME:root}

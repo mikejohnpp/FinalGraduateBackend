@@ -6,6 +6,9 @@ server:
 spring:
   application:
     name: auth-service
+  threads:
+    virtual:
+      enabled: true
   mail:
     host: smtp.gmail.com
     port: 587
@@ -26,7 +29,7 @@ spring:
       ddl-auto: none
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-    show-sql: true
+    show-sql: false
 
 jwt:
   secret: 9q7897937129387891375981312312312312131231192347192374973948712980347913274

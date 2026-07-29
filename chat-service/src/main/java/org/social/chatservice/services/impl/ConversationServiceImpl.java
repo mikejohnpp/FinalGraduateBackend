@@ -3,6 +3,7 @@ package org.social.chatservice.services.impl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.social.chatservice.services.ConversationMemberCache;
 import org.social.chatservice.services.ConversationService;
 
 import org.social.common.dto.ApiResponse;
@@ -45,11 +46,12 @@ public class ConversationServiceImpl implements ConversationService {
         private final MessageResponseMapper messageResponseMapper;
         private final UserResponseMapper userResponseMapper;
         private final ChatRedisServiceImpl chatRedisService;
+        private final ConversationMemberCache conversationMemberCache;
 
         @Cacheable(value = "chat:conversations", key = "#userIdRequest")
         @Override
         public Set<ConversationResponse> getAllConversations(int userId, String userIdRequest) {
-                System.out.println("lần đầu thôi nha");
+//                System.out.println("lần đầu thôi nha");
                 User user = userRepository.findById(Long.valueOf(userId)).orElseThrow(
                                 () -> new BusinessException("Không tìm thấy người"));
 
@@ -252,6 +254,9 @@ public class ConversationServiceImpl implements ConversationService {
                         cu.setUser(user);
                         conversationUserRepository.save(cu);
                 }
+
+                // Thành viên đổi → xóa cache để lần fanout kế tiếp nạp lại từ DB.
+                conversationMemberCache.evict(conversationId);
 
                 return ApiResponse.ok(
                                 "Thêm thành viên vào nhóm thành công",
