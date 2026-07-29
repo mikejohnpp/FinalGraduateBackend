@@ -3,7 +3,9 @@ package org.social.userservice.services.impl;
 import lombok.RequiredArgsConstructor;
 import org.social.common.dto.CursorPageResponse;
 import org.social.common.dto.PageResponse;
+import org.social.common.dto.media.MediaMapper;
 import org.social.common.dto.post.mappers.PostMapper;
+
 import org.social.common.dto.post.requests.PostCreateRequest;
 import org.social.common.dto.post.requests.PostUpdateRequest;
 import org.social.common.dto.post.views.PostDTO;
@@ -11,17 +13,21 @@ import org.social.common.dto.post.views.PostDetailDTO;
 import org.social.common.dto.post.views.PostSummaryDTO;
 import org.social.common.entities.*;
 import org.social.common.events.AnalyzeSentimentEvent;
+import org.social.common.events.NotificationEvent;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.social.common.kafka.support.EventEnvelope;
 import org.social.common.kafka.support.EventPublisher;
+import org.social.common.repositories.GroupRepository;
 import org.social.common.repositories.PostLikeRepository;
 import org.social.common.repositories.PostRepository;
 import org.social.common.repositories.UserGroupRepository;
 import org.social.common.repositories.UserRepository;
+import org.social.userservice.messaging.publishers.NotificationProducer;
 import org.social.userservice.services.PostService;
+
 import org.social.userservice.specifications.PostSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -44,7 +50,9 @@ public class PostServiceImpl implements PostService {
     private final PostLikeRepository postLikeRepository;
     private final UserRepository userRepository;
     private final UserGroupRepository userGroupRepository;
+    private final GroupRepository groupRepository;
     private final EventPublisher userEventPublisher;
+    private final NotificationProducer notificationProducer;
 
     private String getAuthorRole(Post post) {
         if (Boolean.TRUE.equals(post.getIsGroupPosted()) && post.getGroup() != null) {
@@ -70,8 +78,9 @@ public class PostServiceImpl implements PostService {
 
         if (Boolean.TRUE.equals(request.isGroupPosted()) && request.groupId() != null) {
             UserGroup membership = userGroupRepository.findByUserIdAndGroupId(request.userId(), request.groupId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Bạn không phải thành viên của nhóm này"));
-            
+                    .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED,
+                            "Bạn không phải thành viên của nhóm này"));
+
             Group group = new Group();
             group.setId(request.groupId());
             post.setGroup(group);
@@ -85,14 +94,32 @@ public class PostServiceImpl implements PostService {
             post.setStatus("APPROVED");
         }
 
+        if (request.media() != null && !request.media().isEmpty()) {
+            post.getMedia().addAll(MediaMapper.toPostMediaEntities(request.media(), post));
+        }
+
         Post savedPost = postRepository.save(post);
 
         userEventPublisher.publish(
                 preprocessorTopic,
                 savedPost.getId().toString(),
                 EventEnvelope.of("postAnalyze", "user-service",
-                        new AnalyzeSentimentEvent(savedPost.getContent(), savedPost.getId(), "POST", savedPost.getId()))
-        );
+                        new AnalyzeSentimentEvent(savedPost.getContent(), savedPost.getId(), "POST",
+                                savedPost.getId())));
+
+        // Bài viết nhóm chờ duyệt: thông báo GROUP_POST_PENDING cho admin nhóm
+        if ("PENDING".equals(savedPost.getStatus()) && request.groupId() != null) {
+            groupRepository.findByIdAndIsActiveTrue(request.groupId())
+                    .filter(g -> g.getAdmin() != null)
+                    .ifPresent(g -> notificationProducer.publish(new NotificationEvent(
+                            g.getAdmin().getId(),
+                            request.userId(),
+                            NotificationType.GROUP_POST_PENDING.name(),
+                            "POST",
+                            savedPost.getId(),
+                            null,
+                            "/groups/" + request.groupId())));
+        }
 
         return PostMapper.toPostDTO(savedPost, getAuthorRole(savedPost), false);
     }
@@ -101,12 +128,13 @@ public class PostServiceImpl implements PostService {
     public List<PostSummaryDTO> getAll(Integer userId) {
         List<Post> posts = postRepository.findAllWithUser();
         List<Integer> postIds = posts.stream().map(Post::getId).toList();
-        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty()) 
-                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds) 
+        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty())
+                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds)
                 : List.of();
 
         return posts.stream()
-                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post), likedPostIds.contains(post.getId())))
+                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()),
+                        getAuthorRole(post), likedPostIds.contains(post.getId())))
                 .toList();
     }
 
@@ -122,12 +150,13 @@ public class PostServiceImpl implements PostService {
         String nextCursor = pageData.isEmpty() ? null : pageData.getLast().getCreatedAt().toString();
 
         List<Integer> postIds = pageData.stream().map(Post::getId).toList();
-        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty()) 
-                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds) 
+        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty())
+                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds)
                 : List.of();
 
         List<PostSummaryDTO> dtos = pageData.stream()
-                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post), likedPostIds.contains(post.getId())))
+                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()),
+                        getAuthorRole(post), likedPostIds.contains(post.getId())))
                 .toList();
 
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);
@@ -149,8 +178,15 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("Bài viết", id));
 
         post.setContent(request.content());
+
+        if (request.media() != null) {
+            post.getMedia().clear();
+            post.getMedia().addAll(MediaMapper.toPostMediaEntities(request.media(), post));
+        }
+
         Post savedPost = postRepository.save(post);
         long likeCount = postLikeRepository.countByPostId(id);
+
         boolean hasLiked = userId != null && postLikeRepository.existsByUserIdAndPostId(userId, id);
         return PostMapper.toDetailDTO(savedPost, likeCount, getAuthorRole(savedPost), hasLiked);
     }
@@ -193,7 +229,8 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public PageResponse<PostSummaryDTO> getFiltered(Integer userId, Boolean isGroupPosted, Integer groupId, String keyword, int page, int size, String sortDir) {
+    public PageResponse<PostSummaryDTO> getFiltered(Integer userId, Boolean isGroupPosted, Integer groupId,
+            String keyword, int page, int size, String sortDir) {
         Sort sort = "asc".equalsIgnoreCase(sortDir)
                 ? Sort.by("createdAt").ascending()
                 : Sort.by("createdAt").descending();
@@ -208,12 +245,13 @@ public class PostServiceImpl implements PostService {
         Page<Post> postPage = postRepository.findAll(spec, pageable);
 
         List<Integer> postIds = postPage.getContent().stream().map(Post::getId).toList();
-        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty()) 
-                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds) 
+        List<Integer> likedPostIds = (userId != null && !postIds.isEmpty())
+                ? postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds)
                 : List.of();
 
         List<PostSummaryDTO> dtos = postPage.getContent().stream()
-                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()), getAuthorRole(post), likedPostIds.contains(post.getId())))
+                .map(post -> PostMapper.toSummaryDTO(post, postLikeRepository.countByPostId(post.getId()),
+                        getAuthorRole(post), likedPostIds.contains(post.getId())))
                 .toList();
 
         return new PageResponse<>(
@@ -223,7 +261,6 @@ public class PostServiceImpl implements PostService {
                 postPage.getTotalElements(),
                 postPage.getTotalPages(),
                 postPage.hasNext(),
-                postPage.hasPrevious()
-        );
+                postPage.hasPrevious());
     }
 }

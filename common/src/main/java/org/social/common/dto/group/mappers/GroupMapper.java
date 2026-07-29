@@ -11,16 +11,17 @@ import java.util.ArrayList;
 public class GroupMapper {
 
     public static GroupSummaryDTO toSummaryDTO(Group group) {
-        if (group == null) return null;
+        if (group == null)
+            return null;
         return new GroupSummaryDTO(
                 group.getId(),
                 group.getName(),
-                group.getAvatar()
-        );
+                group.getAvatar());
     }
 
     public static GroupDTO toDTO(Group group, long memberCount, boolean isJoined, boolean isPending, String role) {
-        if (group == null) return null;
+        if (group == null)
+            return null;
         return new GroupDTO(
                 group.getId(),
                 group.getName(),
@@ -39,12 +40,15 @@ public class GroupMapper {
     }
 
     public static GroupMemberDTO toMemberDTO(UserGroup userGroup) {
-        if (userGroup == null) return null;
+        if (userGroup == null)
+            return null;
+        String nickName = userGroup.getUser().getNickName();
+        String displayName = (nickName != null && !nickName.isBlank()) ? nickName : userGroup.getUser().getUserName();
         return new GroupMemberDTO(
                 userGroup.getUser().getId(),
-                userGroup.getUser().getNickName() != null ? userGroup.getUser().getNickName() : userGroup.getUser().getUserName(),
+                displayName,
                 userGroup.getUser().getAvatar(),
-                userGroup.getRole()
-        );
+                userGroup.getRole());
     }
+
 }

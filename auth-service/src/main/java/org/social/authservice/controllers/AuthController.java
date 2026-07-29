@@ -7,9 +7,12 @@ import lombok.RequiredArgsConstructor;
 import org.social.authservice.services.JWTService;
 import org.social.authservice.services.UserService;
 import org.social.common.dto.ApiResponse;
+import org.social.common.dto.ForgotPasswordRequest;
 import org.social.common.dto.JwtAuthResponse;
 import org.social.common.dto.LoginRequest;
 import org.social.common.dto.RegisterRequest;
+import org.social.common.dto.ResetPasswordRequest;
+import org.social.common.dto.VerifyOtpRequest;
 import org.social.common.entities.User;
 import org.social.common.exceptions.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -162,5 +165,27 @@ public class AuthController {
                 "userId", String.valueOf(userId));
 
         return ApiResponse.ok("Token hợp lệ.", userData);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> quenMatKhau(@Validated @RequestBody ForgotPasswordRequest request) {
+        userService.quenMatKhau(request.getEmail());
+        return ApiResponse.ok("Mã xác nhận (OTP) đã được gửi đến email của bạn.");
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse<Void>> xacNhanOtp(@Validated @RequestBody VerifyOtpRequest request) {
+        boolean hopLe = userService.xacNhanOtp(request.getEmail(), request.getOtp());
+        if (hopLe) {
+            return ApiResponse.ok("Mã OTP hợp lệ.");
+        } else {
+            return ApiResponse.error(HttpStatus.BAD_REQUEST, "Mã OTP không hợp lệ hoặc đã hết hạn.");
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> datLaiMatKhau(@Validated @RequestBody ResetPasswordRequest request) {
+        userService.datLaiMatKhau(request);
+        return ApiResponse.ok("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay bây giờ.");
     }
 }

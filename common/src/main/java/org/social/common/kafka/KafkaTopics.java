@@ -13,5 +13,10 @@ public final class KafkaTopics {
     public static final String POST_ANALYZE_SENTIMENT = "dev.post.analyze.sentiment";
     public static final String POST_ANALYZE_RESULT = "dev.post.analyze.result";
 
+    public static final String NOTIFICATION_CREATED = "dev.notification.created";
+
+    public static final String FRIEND_ACCEPTED = "dev.friend.accepted";
+
     public static final String DLT_SUFFIX = ".dlt";
+
 }

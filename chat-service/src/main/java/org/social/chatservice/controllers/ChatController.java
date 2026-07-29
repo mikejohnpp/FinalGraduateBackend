@@ -2,6 +2,7 @@ package org.social.chatservice.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.social.chatservice.messaging.relay.RedisMessageRelay;
+import org.social.chatservice.services.MessageNotifier;
 import org.social.chatservice.services.MessageService;
 import org.social.common.dto.conversation.requests.ChatMessageRequest;
 import org.social.common.dto.conversation.response.ChatMessageResponse;
@@ -26,11 +27,11 @@ public class ChatController {
 
     private final RedisMessageRelay messageRelay;
     private final MessageService messageService;
+    private final MessageNotifier messageNotifier;
     private final ObjectMapper objectMapper;
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatMessageRequest chatMessageRequest, Principal principal) {
-        System.out.println(principal.getName());
         chatMessageRequest.setSenderId(Integer.valueOf(principal.getName()));
 
         ChatMessageResponse saved = messageService.saveMessage(chatMessageRequest);
@@ -38,6 +39,10 @@ public class ChatController {
         messageRelay.broadcast(
                 "/topic/conversation/" + saved.getConversationId(),
                 saved);
+
+        // Thông báo riêng cho từng thành viên khác để họ nhận được dù không mở
+        // hội thoại (chưa subscribe /topic/conversation/{id}).
+        messageNotifier.notifyNewMessage(saved);
     }
 
     @MessageMapping("/chat.typing")
@@ -118,6 +123,8 @@ public class ChatController {
                     messageRelay.broadcast(
                             "/topic/conversation/" + conversationId,
                             callMsg);
+
+                    messageNotifier.notifyNewMessage(callMsg);
 
                     System.out.println("Saved call history [" + request.type() + "] to conversation " + conversationId);
                 } catch (Exception e) {

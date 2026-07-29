@@ -98,6 +98,9 @@ public class User {
     @OneToMany(mappedBy = "user")
     private Set<Post> posts = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "user")
+    private Set<Story> storys = new LinkedHashSet<>();
+
     @Column(name = "active")
     private Boolean active;
 

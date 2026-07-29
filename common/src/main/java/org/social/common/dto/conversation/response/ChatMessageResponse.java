@@ -11,11 +11,13 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageResponse {
-    private int id;
+    private Long id;
     private String content;
     private Instant createdAt;
     private UserResponse user;
     private int conversationId;
     private MessageType messageType;
     private Integer callDuration;
+    private String tempId;
+    private Boolean isActive;
 }

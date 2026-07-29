@@ -4,22 +4,28 @@ server:
 spring:
   application:
     name: chat-service
+  threads:
+    virtual:
+      enabled: true
+  cache:
+    redis:
+      time-to-live: 300s
   data:
     redis:
       host: ${REDIS_HOST:100.120.5.8}
       port: ${REDIS_PORT:32034}
       password: ${REDIS_PASSWORD:default}
   datasource:
-    url: ${DB_URL:jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:''}
+    url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+    username: root
+    password: ''
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jpa:
-      hibernate:
-        ddl-auto: none
-        naming:
-          physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-      show-sql: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+  #    show-sql: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:100.120.5.8:31835}
     producer:
@@ -50,6 +56,8 @@ app:
     topics:
       demo-ping: demo.ping
       demo-pong: demo.pong
+      friend.accepted: dev.friend.accepted
+      chat.save: dev.mess.saved
 
 auth-service:
   url: http://localhost:9093/

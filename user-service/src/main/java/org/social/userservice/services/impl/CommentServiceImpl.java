@@ -3,14 +3,19 @@ package org.social.userservice.services.impl;
 import lombok.RequiredArgsConstructor;
 import org.social.common.dto.CursorPageResponse;
 import org.social.common.dto.comment.mappers.CommentMapper;
+import org.social.common.dto.media.MediaMapper;
 import org.social.common.dto.comment.requests.CommentCreateRequest;
+
 import org.social.common.dto.comment.requests.CommentUpdateRequest;
 import org.social.common.dto.comment.views.CommentDTO;
 import org.social.common.entities.Comment;
 import org.social.common.entities.CommentLike;
+import org.social.common.entities.NotificationType;
 import org.social.common.entities.Post;
 import org.social.common.entities.User;
 import org.social.common.events.AnalyzeSentimentEvent;
+import org.social.common.events.NotificationEvent;
+import org.social.userservice.messaging.publishers.NotificationProducer;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
@@ -42,12 +47,14 @@ public class CommentServiceImpl implements CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final EventPublisher userEventPublisher;
+    private final NotificationProducer notificationProducer;
 
     @Override
     public CursorPageResponse<CommentDTO> getComments(Integer postId, Integer userId, String cursor, int size) {
         Instant cursorInstant = (cursor != null) ? Instant.parse(cursor) : Instant.now();
 
-        List<Comment> comments = commentRepository.findActiveCommentsBefore(postId, cursorInstant, PageRequest.of(0, size + 1));
+        List<Comment> comments = commentRepository.findActiveCommentsBefore(postId, cursorInstant,
+                PageRequest.of(0, size + 1));
 
         boolean hasMore = comments.size() > size;
         List<Comment> pageData = hasMore ? comments.subList(0, size) : comments;
@@ -55,17 +62,20 @@ public class CommentServiceImpl implements CommentService {
         String nextCursor = pageData.isEmpty() ? null : pageData.getLast().getCreatedAt().toString();
 
         List<CommentDTO> dtos = pageData.stream()
-                .map(comment -> CommentMapper.toCommentDTO(comment, commentLikeRepository.existsByCommentIdAndUserId(comment.getId(), userId)))
+                .map(comment -> CommentMapper.toCommentDTO(comment,
+                        commentLikeRepository.existsByCommentIdAndUserId(comment.getId(), userId)))
                 .toList();
 
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);
     }
 
     @Override
-    public CursorPageResponse<CommentDTO> getReplies(Integer postId, Integer commentId, Integer userId, String cursor, int size) {
+    public CursorPageResponse<CommentDTO> getReplies(Integer postId, Integer commentId, Integer userId, String cursor,
+            int size) {
         Instant cursorInstant = (cursor != null) ? Instant.parse(cursor) : Instant.EPOCH;
 
-        List<Comment> comments = commentRepository.findActiveRepliesAfter(postId, commentId, cursorInstant, PageRequest.of(0, size + 1));
+        List<Comment> comments = commentRepository.findActiveRepliesAfter(postId, commentId, cursorInstant,
+                PageRequest.of(0, size + 1));
 
         boolean hasMore = comments.size() > size;
         List<Comment> pageData = hasMore ? comments.subList(0, size) : comments;
@@ -73,7 +83,8 @@ public class CommentServiceImpl implements CommentService {
         String nextCursor = pageData.isEmpty() ? null : pageData.getLast().getCreatedAt().toString();
 
         List<CommentDTO> dtos = pageData.stream()
-                .map(comment -> CommentMapper.toCommentDTO(comment, commentLikeRepository.existsByCommentIdAndUserId(comment.getId(), userId)))
+                .map(comment -> CommentMapper.toCommentDTO(comment,
+                        commentLikeRepository.existsByCommentIdAndUserId(comment.getId(), userId)))
                 .toList();
 
         return new CursorPageResponse<>(dtos, nextCursor, hasMore);
@@ -100,31 +111,59 @@ public class CommentServiceImpl implements CommentService {
         if (request.parentId() != null) {
             Comment parent = commentRepository.findByIdAndIsActiveTrue(request.parentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Bình luận", request.parentId()));
-            
+
             if (!Objects.equals(parent.getPost().getId(), postId)) {
                 throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Bình luận cha không thuộc bài viết này");
             }
             if (parent.getParent() != null) {
                 throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Không thể trả lời bình luận phản hồi");
             }
-            
+
             comment.setParent(parent);
             parent.setReplyCount(parent.getReplyCount() + 1);
             commentRepository.save(parent);
+
+            // Thông báo REPLY cho chủ bình luận cha
+            notificationProducer.publish(new NotificationEvent(
+                    parent.getUser().getId(),
+                    request.userId(),
+                    NotificationType.REPLY.name(),
+                    "COMMENT",
+                    parent.getId(),
+                    null,
+                    "/posts/" + postId));
+        }
+
+        if (request.media() != null && !request.media().isEmpty()) {
+            comment.getMedia().addAll(MediaMapper.toCommentMediaEntities(request.media(), comment));
         }
 
         int currentPostCommentCount = post.getCommentCount() != null ? post.getCommentCount() : 0;
+
         post.setCommentCount(currentPostCommentCount + 1);
         postRepository.save(post);
 
         Comment savedComment = commentRepository.save(comment);
 
+        // Thông báo COMMENT cho chủ bài viết (chỉ với bình luận gốc)
+        // entityId = id bình luận vừa tạo để FE cuộn tới đúng bình luận, link giữ
+        // postId
+        if (request.parentId() == null) {
+            notificationProducer.publish(new NotificationEvent(
+                    post.getUser().getId(),
+                    request.userId(),
+                    NotificationType.COMMENT.name(),
+                    "COMMENT",
+                    savedComment.getId(),
+                    null,
+                    "/posts/" + postId));
+        }
+
         userEventPublisher.publish(
                 preprocessorTopic,
                 savedComment.getId().toString(),
                 EventEnvelope.of("postAnalyze", "user-service",
-                        new AnalyzeSentimentEvent(savedComment.getContent(), null, "COMMENT", savedComment.getId()))
-        );
+                        new AnalyzeSentimentEvent(savedComment.getContent(), null, "COMMENT", savedComment.getId())));
 
         return CommentMapper.toCommentDTO(savedComment, false);
     }
@@ -145,6 +184,12 @@ public class CommentServiceImpl implements CommentService {
 
         comment.setContent(request.content());
         comment.setUpdatedAt(Instant.now());
+
+        if (request.media() != null) {
+            comment.getMedia().clear();
+            comment.getMedia().addAll(MediaMapper.toCommentMediaEntities(request.media(), comment));
+        }
+
         Comment savedComment = commentRepository.save(comment);
 
         boolean liked = commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId);
@@ -162,7 +207,8 @@ public class CommentServiceImpl implements CommentService {
             throw new ResourceNotFoundException("Bình luận", commentId);
         }
 
-        if (!Objects.equals(comment.getUser().getId(), requestUserId) && !Objects.equals(post.getUser().getId(), requestUserId)) {
+        if (!Objects.equals(comment.getUser().getId(), requestUserId)
+                && !Objects.equals(post.getUser().getId(), requestUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 

@@ -46,6 +46,16 @@ HTTP 200
 jsonpath "$.success" == true
 jsonpath "$.data" == 0
 
+# ── 4b. Check initial status (should be NOT_FRIENDS) ──────────────────────────
+GET {{host}}/users/friends/status?userId={{userId1}}&targetId={{userId2}}
+Authorization: Bearer {{token}}
+
+HTTP 200
+[Asserts]
+jsonpath "$.success" == true
+jsonpath "$.data.status" == "NOT_FRIENDS"
+jsonpath "$.data.requestId" == null
+
 # ── 5. Send friend request (user1 → user2) ───────────────────────────────────
 POST {{host}}/users/friends/requests
 Authorization: Bearer {{token}}
@@ -58,6 +68,53 @@ Content-Type: application/json
 HTTP 201
 [Asserts]
 jsonpath "$.success" == true
+
+# ── 5b. Check status after send (PENDING_SENT for user1, PENDING_RECEIVED for user2) ──
+GET {{host}}/users/friends/status?userId={{userId1}}&targetId={{userId2}}
+Authorization: Bearer {{token}}
+
+HTTP 200
+[Asserts]
+jsonpath "$.success" == true
+jsonpath "$.data.status" == "PENDING_SENT"
+jsonpath "$.data.requestId" == {{userId1}}
+
+GET {{host}}/users/friends/status?userId={{userId2}}&targetId={{userId1}}
+Authorization: Bearer {{token2}}
+
+HTTP 200
+[Asserts]
+jsonpath "$.success" == true
+jsonpath "$.data.status" == "PENDING_RECEIVED"
+jsonpath "$.data.requestId" == {{userId1}}
+
+# ── 5c. Cancel friend request ─────────────────────────────────────────────────
+DELETE {{host}}/users/friends/requests/cancel?userId={{userId1}}&targetId={{userId2}}
+Authorization: Bearer {{token}}
+
+HTTP 200
+[Asserts]
+jsonpath "$.success" == true
+
+# ── 5d. Check status after cancel (back to NOT_FRIENDS) ───────────────────────
+GET {{host}}/users/friends/status?userId={{userId1}}&targetId={{userId2}}
+Authorization: Bearer {{token}}
+
+HTTP 200
+[Asserts]
+jsonpath "$.success" == true
+jsonpath "$.data.status" == "NOT_FRIENDS"
+
+# ── 5e. Re-send friend request for subsequent tests (user1 → user2) ───────────
+POST {{host}}/users/friends/requests
+Authorization: Bearer {{token}}
+Content-Type: application/json
+{
+  "userId": {{userId1}},
+  "targetUserId": {{userId2}}
+}
+
+HTTP 201
 
 # ── 6. Duplicate request → 409 ────────────────────────────────────────────────
 POST {{host}}/users/friends/requests
@@ -106,6 +163,16 @@ Authorization: Bearer {{token2}}
 HTTP 200
 [Asserts]
 jsonpath "$.success" == true
+
+# ── 10b. Check status after accept (should be FRIENDS) ────────────────────────
+GET {{host}}/users/friends/status?userId={{userId1}}&targetId={{userId2}}
+Authorization: Bearer {{token}}
+
+HTTP 200
+[Asserts]
+jsonpath "$.success" == true
+jsonpath "$.data.status" == "FRIENDS"
+jsonpath "$.data.requestId" == null
 
 # ── 11. Already friends → cannot send again → 409 ────────────────────────────
 POST {{host}}/users/friends/requests

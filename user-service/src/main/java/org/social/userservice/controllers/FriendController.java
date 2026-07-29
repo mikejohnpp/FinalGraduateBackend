@@ -12,12 +12,30 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.social.common.dto.friend.views.FriendStatusDTO;
+
 @RestController
 @RequestMapping("/friends")
 @RequiredArgsConstructor
 public class FriendController {
 
     private final FriendService friendService;
+
+    @GetMapping("/status")
+    public ResponseEntity<ApiResponse<FriendStatusDTO>> getFriendStatus(
+            @RequestParam Integer userId,
+            @RequestParam Integer targetId) {
+        FriendStatusDTO result = friendService.getFriendStatus(userId, targetId);
+        return ApiResponse.ok("Lấy trạng thái bạn bè thành công!", result);
+    }
+
+    @DeleteMapping("/requests/cancel")
+    public ResponseEntity<ApiResponse<Void>> cancelRequest(
+            @RequestParam Integer userId,
+            @RequestParam Integer targetId) {
+        friendService.cancelRequest(userId, targetId);
+        return ApiResponse.ok("Đã hủy lời mời kết bạn!");
+    }
 
     @GetMapping("/requests")
     public ResponseEntity<ApiResponse<CursorPageResponse<FriendRequestDTO>>> getPendingRequests(

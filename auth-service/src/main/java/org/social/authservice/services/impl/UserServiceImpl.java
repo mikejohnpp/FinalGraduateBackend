@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.social.authservice.services.EmailService;
 import org.social.authservice.services.UserService;
 import org.social.common.dto.RegisterRequest;
+import org.social.common.dto.ResetPasswordRequest;
 import org.social.common.entities.Role;
+
 import org.social.common.entities.User;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
@@ -105,4 +107,67 @@ public class UserServiceImpl implements UserService {
                 new SimpleGrantedAuthority(user.getRole().getName()));
         return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), authorities);
     }
+
+    @Override
+    public void quenMatKhau(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED).withData(Map.of(
+                        "email", "Không tìm thấy người dùng với email: " + email)));
+
+        // Sinh mã OTP 6 chữ số
+        String otp = String.format("%06d", new java.util.Random().nextInt(1000000));
+        user.setActiveCode(otp);
+        user.setExpireDate(LocalDateTime.now().plusHours(24));
+        userRepository.save(user);
+
+        emailService.guiEmailQuenMatKhau(email, otp);
+    }
+
+    @Override
+    public boolean xacNhanOtp(String email, String otp) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED).withData(Map.of(
+                        "email", "Không tìm thấy người dùng với email: " + email)));
+
+        if (user.getActiveCode() == null || !user.getActiveCode().equals(otp)) {
+            return false;
+        }
+
+        if (user.getExpireDate() == null
+                || LocalDateTime.now().isAfter(user.getExpireDate())) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public void datLaiMatKhau(ResetPasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED).withData(Map.of(
+                    "confirmPassword", "Mật khẩu xác nhận không khớp!"));
+        }
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED).withData(Map.of(
+                        "email", "Không tìm thấy người dùng với email: " + request.getEmail())));
+
+        if (user.getActiveCode() == null || !user.getActiveCode().equals(request.getOtp())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED).withData(Map.of(
+                    "otp", "Mã OTP không hợp lệ!"));
+        }
+
+        if (user.getExpireDate() == null
+                || LocalDateTime.now().isAfter(user.getExpireDate())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED).withData(Map.of(
+                    "otp", "Mã OTP đã hết hạn!"));
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setActiveCode(null);
+        user.setExpireDate(null);
+        userRepository.save(user);
+    }
 }
+

@@ -28,6 +28,7 @@ public class KafkaCommonProperties {
         private String demoPing = "demo.ping";
         private String demoPong = "demo.pong";
         private String aiAnalyzeRequest = "dev.post.analyze.preprocessor";
+        private String saveMessage = "dev.mess.saved";
 
         public String getDemoPing() { return demoPing; }
         public void setDemoPing(String v) { this.demoPing = v; }
@@ -35,6 +36,14 @@ public class KafkaCommonProperties {
         public void setDemoPong(String v) { this.demoPong = v; }
         public String getAiAnalyzeRequest() { return aiAnalyzeRequest; }
         public void setAiAnalyzeRequest(String v) { this.aiAnalyzeRequest = v; }
+
+        public String getSaveMessage() {
+            return saveMessage;
+        }
+
+        public void setSaveMessage(String saveMessage) {
+            this.saveMessage = saveMessage;
+        }
     }
 
     public static class Retry {

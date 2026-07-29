@@ -3,17 +3,20 @@ server:
 spring:
   application:
     name: notification-service
+  threads:
+    virtual:
+      enabled: true
   datasource:
     url: ${DB_URL:jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:""}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jpa:
-      hibernate:
-        ddl-auto: none
-        naming:
-          physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-      show-sql: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:100.120.5.8:31835}
     producer:
@@ -44,4 +47,4 @@ app:
     topics:
       demo-ping: demo.ping
       demo-pong: demo.pong
-
+      notification.created: dev.notification.created

@@ -18,7 +18,7 @@ import java.util.Optional;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Integer>, JpaSpecificationExecutor<Post> {
 
-    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL)")
+    @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL) ORDER BY p.createdAt DESC")
     List<Post> findAllWithUser();
 
     @Query("SELECT p FROM Post p JOIN FETCH p.user WHERE p.isActive = true AND (p.status = 'APPROVED' OR p.status IS NULL) AND p.createdAt < :cursor ORDER BY p.createdAt DESC")

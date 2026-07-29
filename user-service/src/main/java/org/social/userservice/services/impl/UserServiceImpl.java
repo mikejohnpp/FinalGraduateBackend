@@ -76,8 +76,13 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng", id));
 
+        if (request.userName() != null)
+            user.setUserName(request.userName());
+        if (request.nickName() != null)
+            user.setNickName(request.nickName());
         if (request.bio() != null)
             user.setBio(request.bio());
+
         if (request.location() != null)
             user.setLocation(request.location());
         if (request.education() != null)
@@ -100,6 +105,10 @@ public class UserServiceImpl implements UserService {
             user.setPronouns(request.pronouns());
         if (request.language() != null)
             user.setLanguage(request.language());
+        if (request.avatar() != null)
+            user.setAvatar(request.avatar());
+        if (request.coverPhoto() != null)
+            user.setCoverPhoto(request.coverPhoto());
 
         userRepository.save(user);
 

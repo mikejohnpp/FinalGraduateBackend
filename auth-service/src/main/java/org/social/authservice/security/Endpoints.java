@@ -12,7 +12,10 @@ public class Endpoints {
             "/auth/register",
             "/auth/login",
             "/auth/refresh-token",
-            "/auth/logout"
+            "/auth/logout",
+            "/auth/forgot-password",
+            "/auth/verify-otp",
+            "/auth/reset-password"
     };
 
     public static final String[] PRIVATE_GET_ENDPOINT = new String[] {

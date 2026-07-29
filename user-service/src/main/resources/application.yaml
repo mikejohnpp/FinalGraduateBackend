@@ -4,11 +4,14 @@ server:
 spring:
   application:
     name: user-service
+  threads:
+    virtual:
+      enabled: true
   datasource:
-    url: ${DB_URL:jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull}
-#    url: jdbc:mysql://localhost:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:""}
+    url: jdbc:mysql://100.120.5.8:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+    #    url: jdbc:mysql://localhost:3306/FinalGraduateDB?zeroDateTimeBehavior=convertToNull
+    username: root
+    password: ''
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
@@ -47,3 +50,5 @@ app:
     topics:
       post.analyze.preprocessor: dev.post.analyze.preprocessor
       post.analyze.result: dev.post.analyze.result
+      notification.created: dev.notification.created
+      friend.accepted: dev.friend.accepted

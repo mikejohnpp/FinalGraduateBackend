@@ -5,13 +5,17 @@ import org.social.common.dto.PageResponse;
 import org.social.common.dto.group.mappers.GroupAdminMapper;
 import org.social.common.dto.group.views.*;
 import org.social.common.entities.Group;
+import org.social.common.entities.NotificationType;
 import org.social.common.entities.Post;
 import org.social.common.entities.UserGroup;
+import org.social.common.events.NotificationEvent;
 import org.social.common.exceptions.BusinessException;
 import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
 import org.social.common.repositories.*;
+import org.social.userservice.messaging.publishers.NotificationProducer;
 import org.social.userservice.services.GroupAdminService;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -33,8 +37,10 @@ public class GroupAdminServiceImpl implements GroupAdminService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final PostLikeRepository postLikeRepository;
+    private final NotificationProducer notificationProducer;
 
     private Group findActiveGroup(Integer groupId) {
+
         return groupRepository.findByIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group", groupId));
     }
@@ -73,16 +79,21 @@ public class GroupAdminServiceImpl implements GroupAdminService {
         int pendingReviews = pendingPosts + memberRequests;
 
         long weeklyPostsCurrent = postRepository.countByGroupIdAndCreatedAtAfter(groupId, sevenDaysAgo);
-        long weeklyPostsPrevious = postRepository.countByGroupIdAndCreatedAtBetween(groupId, fourteenDaysAgo, sevenDaysAgo);
+        long weeklyPostsPrevious = postRepository.countByGroupIdAndCreatedAtBetween(groupId, fourteenDaysAgo,
+                sevenDaysAgo);
         double weeklyPostsChange = calculatePercentChange(weeklyPostsCurrent, weeklyPostsPrevious);
 
         long weeklyCommentsCurrent = commentRepository.countByGroupIdAndCreatedAtAfter(groupId, sevenDaysAgo);
-        long weeklyCommentsPrevious = commentRepository.countByGroupIdAndCreatedAtAfter(groupId, fourteenDaysAgo) - weeklyCommentsCurrent;
-        double weeklyCommentsChange = calculatePercentChange(weeklyCommentsCurrent, Math.max(weeklyCommentsPrevious, 0));
+        long weeklyCommentsPrevious = commentRepository.countByGroupIdAndCreatedAtAfter(groupId, fourteenDaysAgo)
+                - weeklyCommentsCurrent;
+        double weeklyCommentsChange = calculatePercentChange(weeklyCommentsCurrent,
+                Math.max(weeklyCommentsPrevious, 0));
 
         long weeklyReactionsCurrent = postLikeRepository.countByGroupIdAndCreatedAtAfter(groupId, sevenDaysAgo);
-        long weeklyReactionsPrevious = postLikeRepository.countByGroupIdAndCreatedAtAfter(groupId, fourteenDaysAgo) - weeklyReactionsCurrent;
-        double weeklyReactionsChange = calculatePercentChange(weeklyReactionsCurrent, Math.max(weeklyReactionsPrevious, 0));
+        long weeklyReactionsPrevious = postLikeRepository.countByGroupIdAndCreatedAtAfter(groupId, fourteenDaysAgo)
+                - weeklyReactionsCurrent;
+        double weeklyReactionsChange = calculatePercentChange(weeklyReactionsCurrent,
+                Math.max(weeklyReactionsPrevious, 0));
 
         int activeMembers = 0;
         double activeMembersChange = 0;
@@ -95,14 +106,13 @@ public class GroupAdminServiceImpl implements GroupAdminService {
                 (int) weeklyCommentsCurrent, weeklyCommentsChange,
                 (int) weeklyReactionsCurrent, weeklyReactionsChange,
                 activeMembers, activeMembersChange,
-                weeklyActivity
-        );
+                weeklyActivity);
     }
 
     @Override
     public PageResponse<MemberRequestDTO> getMemberRequests(Integer groupId, Integer userId,
-                                                             String search, String gender, String sort,
-                                                             int page, int size) {
+            String search, String gender, String sort,
+            int page, int size) {
         findActiveGroup(groupId);
         verifyAdmin(groupId, userId);
 
@@ -116,7 +126,8 @@ public class GroupAdminServiceImpl implements GroupAdminService {
         boolean hasGender = gender != null && !gender.trim().isEmpty() && !"ALL".equalsIgnoreCase(gender);
 
         if (hasSearch && hasGender) {
-            resultPage = userGroupRepository.findByGroupIdAndStatusAndSearchAndGender(groupId, "PENDING", search, gender, pageable);
+            resultPage = userGroupRepository.findByGroupIdAndStatusAndSearchAndGender(groupId, "PENDING", search,
+                    gender, pageable);
         } else if (hasSearch) {
             resultPage = userGroupRepository.findByGroupIdAndStatusAndSearch(groupId, "PENDING", search, pageable);
         } else if (hasGender) {
@@ -150,6 +161,18 @@ public class GroupAdminServiceImpl implements GroupAdminService {
             ug.setRole("MEMBER");
         }
         userGroupRepository.saveAll(requests);
+
+        // Thông báo GROUP_JOIN_APPROVED cho từng thành viên được duyệt
+        for (UserGroup ug : requests) {
+            notificationProducer.publish(new NotificationEvent(
+                    ug.getUser().getId(),
+                    userId,
+                    NotificationType.GROUP_JOIN_APPROVED.name(),
+                    "GROUP",
+                    groupId,
+                    null,
+                    "/groups/" + groupId));
+        }
     }
 
     @Override
@@ -203,6 +226,18 @@ public class GroupAdminServiceImpl implements GroupAdminService {
 
         post.setStatus("APPROVED");
         postRepository.save(post);
+
+        // Thông báo GROUP_POST_APPROVED cho tác giả bài viết
+        if (post.getUser() != null) {
+            notificationProducer.publish(new NotificationEvent(
+                    post.getUser().getId(),
+                    userId,
+                    NotificationType.GROUP_POST_APPROVED.name(),
+                    "POST",
+                    postId,
+                    null,
+                    "/groups/" + groupId));
+        }
     }
 
     @Override
@@ -225,7 +260,8 @@ public class GroupAdminServiceImpl implements GroupAdminService {
     }
 
     private double calculatePercentChange(long current, long previous) {
-        if (previous == 0) return 0;
+        if (previous == 0)
+            return 0;
         return Math.round(((double) (current - previous) / previous) * 1000.0) / 10.0;
     }
 
@@ -234,7 +270,7 @@ public class GroupAdminServiceImpl implements GroupAdminService {
         ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
         LocalDate today = now.atZone(zone).toLocalDate();
 
-        String[] dayLabels = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"};
+        String[] dayLabels = { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
 
         for (int i = 6; i >= 0; i--) {
             LocalDate date = today.minusDays(i);
