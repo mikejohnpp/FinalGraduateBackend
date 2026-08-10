@@ -12,5 +12,6 @@ public record SentimentItemDTO(
         String authorName,
         Integer groupId,
         String groupName,
-        Instant createdAt) {
+        Instant createdAt,
+        Boolean isActive) {
 }

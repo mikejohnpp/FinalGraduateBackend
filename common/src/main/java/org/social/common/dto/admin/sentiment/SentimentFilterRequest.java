@@ -9,5 +9,6 @@ public record SentimentFilterRequest(
         Double minConfidence,
         Double maxConfidence,
         String keyword,
-        Integer groupId) {
+        Integer groupId,
+        Boolean isActive) {
 }
