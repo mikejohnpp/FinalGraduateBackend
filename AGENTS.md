@@ -48,8 +48,9 @@ Shared library imported by all services (`org.social:common:1.0-SNAPSHOT`). Cont
     - `dto/admin/requests/`: `AdminUserCreateRequest`, `AdminUserUpdateRequest`, `AdminGroupCreateRequest`, `AdminGroupUpdateRequest`
     - `dto/admin/sentiment/`: `SentimentStatsDTO`, `SentimentItemDTO`, `SentimentFilterRequest`
       - `SentimentStatsDTO` — record(`totalPosts`, `positivePosts`, `neutralPosts`, `negativePosts`, `totalComments`, `positiveComments`, `neutralComments`, `negativeComments`); sentiment overview.
-      - `SentimentItemDTO` — record(`type` (`"POST"`/`"COMMENT"`), `id`, `content`, `sentiment`, `confidence`, `authorId`, `authorName`, `groupId`, `groupName`, `createdAt`); drill-down list item.
+      - `SentimentItemDTO` — record(`type` (`"POST"`/`"COMMENT"`), `id`, `content`, `sentiment`, `confidence`, `authorId`, `authorName`, `groupId`, `groupName`, `createdAt`, `isActive`); drill-down list item.
       - `SentimentFilterRequest` — record(`sentiment`, `fromDate`, `toDate`, `minConfidence`, `maxConfidence`, `keyword`, `groupId`); shared filter for overview + drill-down. Sentiment label values are lowercase `positive`, `neutral`, `negative` (matching `ai-service` `id2label`).
+      - `AdminContentActionRequest` — record(`ids`); used for batch lock/unlock.
 
 - **Events**: `PingEvent`, `PongEvent`, `AnalyzeSentimentEvent`, `PostAnalyzeResultEvent` (Kafka transport records)
 - **Kafka kernel** (`kafka/`): `KafkaTopics`, `KafkaHeaders`, `support/EventEnvelope`, `support/EventPublisher`, `config/KafkaCommonProperties`, `config/KafkaErrorHandlingConfig`
@@ -115,6 +116,7 @@ Key source files:
 - `controllers/UserController.java` — Profile CRUD, avatar/cover upload (`/profile`)
 - `controllers/admin/AdminUserController.java` — System-wide admin user CRUD (`/admin/users`).
 - `controllers/admin/AdminGroupController.java` — System-wide admin group CRUD (`/admin/groups`).
+- `controllers/admin/AdminContentController.java` — System-wide content moderation at `/admin/content`: `POST /posts/lock`, `POST /posts/unlock`, `POST /comments/lock`, `POST /comments/unlock`. Auto-rejects pending group posts when locked.
 - `controllers/admin/AdminSentimentController.java` — Sentiment analytics at `/admin/sentiment`: `GET /overview` (counts per label for posts + comments), `GET /items` (drill-down list, `type=post|comment`). Both accept the `SentimentFilterRequest` query params (`sentiment`, `fromDate`, `toDate`, `minConfidence`, `maxConfidence`, `keyword`, `groupId`); `items` adds `page`/`size`.
 - `controllers/admin/AdminReportController.java` — System report at `/admin/reports`: `GET /overview` (returns `SystemStatsDTO`), `GET /export` (downloads CSV with UTF-8 BOM, `Content-Disposition: attachment`).
 - `messaging/listeners/PostAnalyzeResultListener.java` — Listens to AI NLP results.
