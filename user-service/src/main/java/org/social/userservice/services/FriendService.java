@@ -18,4 +18,5 @@ public interface FriendService {
     int getPendingRequestCount(Integer userId);
     FriendStatusDTO getFriendStatus(Integer userId, Integer targetId);
     void cancelRequest(Integer userId, Integer targetId);
+    void dismissSuggestion(Integer userId, Integer targetUserId);
 }

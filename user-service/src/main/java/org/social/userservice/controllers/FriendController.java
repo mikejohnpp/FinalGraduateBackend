@@ -94,6 +94,14 @@ public class FriendController {
         return ApiResponse.ok("Lấy gợi ý bạn bè thành công!", result);
     }
 
+    @DeleteMapping("/suggestions/{targetUserId}")
+    public ResponseEntity<ApiResponse<Void>> dismissSuggestion(
+            @PathVariable Integer targetUserId,
+            @RequestParam Integer userId) {
+        friendService.dismissSuggestion(userId, targetUserId);
+        return ApiResponse.ok("Đã gỡ gợi ý bạn bè!");
+    }
+
     @DeleteMapping("/{friendUserId}")
     public ResponseEntity<ApiResponse<Void>> unfriend(
             @PathVariable Integer friendUserId,

@@ -28,9 +28,10 @@ public class AdminSentimentController {
             @RequestParam(required = false) Double minConfidence,
             @RequestParam(required = false) Double maxConfidence,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer groupId) {
+            @RequestParam(required = false) Integer groupId,
+            @RequestParam(required = false) Boolean isActive) {
         SentimentFilterRequest filter = new SentimentFilterRequest(
-                sentiment, fromDate, toDate, minConfidence, maxConfidence, keyword, groupId);
+                sentiment, fromDate, toDate, minConfidence, maxConfidence, keyword, groupId, isActive);
         SentimentStatsDTO result = adminSentimentService.getOverview(filter);
         return ApiResponse.ok("Lấy thống kê cảm xúc thành công", result);
     }
@@ -45,10 +46,11 @@ public class AdminSentimentController {
             @RequestParam(required = false) Double maxConfidence,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer groupId,
+            @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         SentimentFilterRequest filter = new SentimentFilterRequest(
-                sentiment, fromDate, toDate, minConfidence, maxConfidence, keyword, groupId);
+                sentiment, fromDate, toDate, minConfidence, maxConfidence, keyword, groupId, isActive);
         PageResponse<SentimentItemDTO> result = adminSentimentService.getItems(type, filter, page, size);
         return ApiResponse.ok("Lấy danh sách nội dung theo cảm xúc thành công", result);
     }

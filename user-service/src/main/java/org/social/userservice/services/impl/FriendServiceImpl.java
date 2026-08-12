@@ -15,9 +15,11 @@ import org.social.common.events.FriendAcceptedEvent;
 import org.social.common.events.NotificationEvent;
 import org.social.userservice.messaging.publishers.FriendEventProducer;
 import org.social.userservice.messaging.publishers.NotificationProducer;
+import org.social.common.entities.DismissedSuggestion;
+import org.social.common.entities.DismissedSuggestionId;
 import org.social.common.exceptions.BusinessException;
-import org.social.common.exceptions.ErrorCode;
 import org.social.common.exceptions.ResourceNotFoundException;
+import org.social.common.repositories.DismissedSuggestionRepository;
 import org.social.common.repositories.UserFriendRepository;
 import org.social.common.repositories.UserRepository;
 import org.social.userservice.services.FriendService;
@@ -40,6 +42,7 @@ public class FriendServiceImpl implements FriendService {
         private final UserRepository userRepository;
         private final NotificationProducer notificationProducer;
         private final FriendEventProducer friendEventProducer;
+        private final DismissedSuggestionRepository dismissedSuggestionRepository;
 
         @Override
         public CursorPageResponse<FriendRequestDTO> getPendingRequests(Integer userId, String cursor, int size) {
@@ -189,6 +192,7 @@ public class FriendServiceImpl implements FriendService {
                 List<Integer> pendingIds = userFriendRepository
                                 .findPendingRequestsBefore(userId, Instant.now(), PageRequest.of(0, Integer.MAX_VALUE))
                                 .stream().map(uf -> uf.getId().getUserId()).toList();
+                List<Integer> dismissedIds = dismissedSuggestionRepository.findDismissedUserIdsByUserId(userId);
 
                 Integer cursorUserId = (cursor != null) ? Integer.parseInt(cursor) : Integer.MAX_VALUE;
 
@@ -197,8 +201,9 @@ public class FriendServiceImpl implements FriendService {
                                 .filter(u -> Boolean.TRUE.equals(u.getIsActive()))
                                 .filter(u -> !myFriendIds.contains(u.getId()))
                                 .filter(u -> !pendingIds.contains(u.getId()))
-                                .filter(u -> !userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(u.getId(),
-                                                userId,
+                                .filter(u -> !dismissedIds.contains(u.getId()))
+                                .filter(u -> !userFriendRepository.existsByIdUserIdAndIdFriendIdAndStatus(userId,
+                                                u.getId(),
                                                 FriendStatus.PENDING))
                                 .sorted((a, b) -> {
                                         int ma = userFriendRepository.countMutualFriends(userId, a.getId());
@@ -274,5 +279,32 @@ public class FriendServiceImpl implements FriendService {
                                 .orElseThrow(() -> new ResourceNotFoundException("Lời mời kết bạn", targetId));
 
                 userFriendRepository.deleteByUserIdAndFriendId(userId, targetId);
+        }
+
+        @Override
+        @Transactional
+        public void dismissSuggestion(Integer userId, Integer targetUserId) {
+                if (userId.equals(targetUserId)) {
+                        throw new BusinessException(HttpStatus.BAD_REQUEST, "Không thể tự gỡ gợi ý chính mình");
+                }
+
+                userRepository.findByIdAndIsActiveTrue(Long.valueOf(targetUserId))
+                                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", targetUserId));
+
+                if (dismissedSuggestionRepository.existsByIdUserIdAndIdDismissedUserId(userId, targetUserId)) {
+                        return;
+                }
+
+                User currentUser = userRepository.findByIdAndIsActiveTrue(Long.valueOf(userId))
+                                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", userId));
+                User target = userRepository.findByIdAndIsActiveTrue(Long.valueOf(targetUserId))
+                                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", targetUserId));
+
+                DismissedSuggestion dismissed = new DismissedSuggestion();
+                dismissed.setId(new DismissedSuggestionId(userId, targetUserId));
+                dismissed.setUser(currentUser);
+                dismissed.setDismissedUser(target);
+                dismissed.setCreatedAt(Instant.now());
+                dismissedSuggestionRepository.save(dismissed);
         }
 }

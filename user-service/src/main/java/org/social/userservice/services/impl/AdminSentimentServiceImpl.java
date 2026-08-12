@@ -92,10 +92,10 @@ public class AdminSentimentServiceImpl implements AdminSentimentService {
 
     private SentimentFilterRequest withSentiment(SentimentFilterRequest filter, String sentiment) {
         if (filter == null) {
-            return new SentimentFilterRequest(sentiment, null, null, null, null, null, null);
+            return new SentimentFilterRequest(sentiment, null, null, null, null, null, null, null);
         }
         return new SentimentFilterRequest(sentiment, filter.fromDate(), filter.toDate(),
-                filter.minConfidence(), filter.maxConfidence(), filter.keyword(), filter.groupId());
+                filter.minConfidence(), filter.maxConfidence(), filter.keyword(), filter.groupId(), filter.isActive());
     }
 
     private SentimentItemDTO toItemDTO(Post post) {
@@ -111,7 +111,8 @@ public class AdminSentimentServiceImpl implements AdminSentimentService {
                 author != null ? author.getUserName() : null,
                 group != null ? group.getId() : null,
                 group != null ? group.getName() : null,
-                post.getCreatedAt());
+                post.getCreatedAt(),
+                post.getIsActive());
     }
 
     private SentimentItemDTO toItemDTO(Comment comment) {
@@ -127,6 +128,7 @@ public class AdminSentimentServiceImpl implements AdminSentimentService {
                 author != null ? author.getUserName() : null,
                 group != null ? group.getId() : null,
                 group != null ? group.getName() : null,
-                comment.getCreatedAt());
+                comment.getCreatedAt(),
+                comment.getIsActive());
     }
 }

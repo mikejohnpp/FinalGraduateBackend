@@ -7,11 +7,14 @@ import org.springframework.data.jpa.domain.Specification;
 public class PostSentimentSpecification {
 
     public static Specification<Post> build(SentimentFilterRequest filter) {
-        Specification<Post> spec = (root, query, cb) -> cb.isTrue(root.get("isActive"));
-        spec = spec.and(hasSentiment());
+        Specification<Post> spec = hasSentiment();
 
         if (filter == null) {
             return spec;
+        }
+
+        if (filter.isActive() != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), filter.isActive()));
         }
 
         if (filter.sentiment() != null && !filter.sentiment().isBlank()) {
