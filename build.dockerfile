@@ -4,7 +4,6 @@ ARG MODULE
 
 WORKDIR /build
 
-# Copy the dependency specifications
 COPY pom.xml pom.xml
 COPY common/pom.xml common/pom.xml
 COPY ${MODULE}/pom.xml ${MODULE}/pom.xml
