@@ -53,11 +53,4 @@ COPY --from=builder /build/${MODULE}/target/*.jar app.jar
 
 EXPOSE 8080
 
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 \
-    -XX:+UseSerialGC \
-    -Xss256k \
-    -XX:MaxMetaspaceSize=128m \
-    -XX:ReservedCodeCacheSize=64m \
-    -XX:+UseStringDeduplication"
-
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
